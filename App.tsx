@@ -311,6 +311,7 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
   const [showSuccess, setShowSuccess] = useState(false);
   const [shakeCanvas, setShakeCanvas] = useState(false);
   const [guideFlash, setGuideFlash] = useState(false);
+  const [showLowercase, setShowLowercase] = useState(false);
   
   const svgRef = useRef<SVGSVGElement>(null);
   
@@ -319,8 +320,9 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
 
   useEffect(() => {
     // Sequence: Say letter -> wait ~1.5s -> Say word
+    // Use lowercase char for pronunciation to avoid "Capital A"
     const letterTimeout = setTimeout(() => {
-      speak(letter.char, 'en-US', 0.5);
+      speak(letter.char.toLowerCase(), 'en-US', 0.5);
     }, 500);
     
     const wordTimeout = setTimeout(() => {
@@ -339,6 +341,17 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
       window.speechSynthesis.cancel();
     };
   }, [letter]);
+
+  // Handle Manual Replay/Reset
+  const handleReplay = () => {
+    setIsDemonstrating(true);
+    setStrokes([]);
+    speak("我们再试一次", 'zh-CN', 0.6);
+    // Important: We must re-enable drawing after the demo finishes
+    setTimeout(() => {
+      setIsDemonstrating(false);
+    }, 3500);
+  };
 
   // Touch Handling
   const getTouchPos = (e: React.TouchEvent | React.MouseEvent): Point | null => {
@@ -438,14 +451,19 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
         <button onClick={onBack} className="bg-white/80 p-3 rounded-full text-2xl shadow-md active:scale-90 transition-transform">
           🏠
         </button>
-        <div className="flex items-center space-x-4">
-          <button onClick={() => speak(letter.char, 'en-US')} className="bg-white/80 px-6 py-2 rounded-full font-bold text-ocean-900 shadow-md active:scale-95">
+        <div className="flex items-center space-x-3">
+           {/* Lowercase Toggle */}
+           <button 
+            onClick={() => setShowLowercase(!showLowercase)} 
+            className={`w-12 h-12 rounded-full font-black text-xl shadow-md active:scale-95 flex items-center justify-center transition-colors ${showLowercase ? 'bg-ocean-500 text-white' : 'bg-white/80 text-ocean-900'}`}
+          >
+            Aa
+          </button>
+          
+          <button onClick={() => speak(letter.char.toLowerCase(), 'en-US')} className="bg-white/80 px-6 py-2 rounded-full font-bold text-ocean-900 shadow-md active:scale-95">
             🔊 {letter.char}
           </button>
-          <button onClick={() => {
-            setIsDemonstrating(true);
-            setStrokes([]); // Reset manually on replay if desired
-          }} className="bg-sand p-3 rounded-full text-2xl shadow-md active:scale-90">
+          <button onClick={handleReplay} className="bg-sand p-3 rounded-full text-2xl shadow-md active:scale-90">
             ↺
           </button>
         </div>
@@ -454,7 +472,16 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
       {/* Main Learning Area - Scrollable */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="flex flex-col items-center justify-center min-h-full p-4 pb-12">
+          
+          {/* Emoji */}
           <div className="text-6xl mb-4 animate-bounce-gentle mt-4">{letter.emoji}</div>
+          
+          {/* Letter Text Display: Shows "A" or "A a" */}
+          <div className="text-6xl font-black text-white drop-shadow-md mb-2 flex items-baseline gap-4">
+              <span>{letter.char}</span>
+              {showLowercase && <span className="text-5xl opacity-90">{letter.char.toLowerCase()}</span>}
+          </div>
+
           <div className="text-3xl font-bold text-white mb-8 drop-shadow-md">{letter.word}</div>
 
           {/* Tracing Canvas Container - shrink-0 prevents flattening on small screens */}
@@ -596,7 +623,7 @@ const HomeView: React.FC<{
                 <button 
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent opening the letter view
-                    speak(letter.char, 'en-US');
+                    speak(letter.char.toLowerCase(), 'en-US');
                   }}
                   className="w-8 h-8 flex items-center justify-center bg-ocean-100 text-ocean-600 rounded-full hover:bg-ocean-200 active:scale-90 transition-colors"
                 >
