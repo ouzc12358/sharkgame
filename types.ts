@@ -19,3 +19,11 @@ export enum AppView {
 }
 
 export type LetterProgress = Record<string, boolean>; // char -> isCompleted
+
+export type SharkColor = 'blue' | 'pink' | 'green' | 'purple';
+export type SharkAccessory = 'none' | 'hat' | 'glasses' | 'bowtie';
+
+export interface SharkConfig {
+  color: SharkColor;
+  accessory: SharkAccessory;
+}
