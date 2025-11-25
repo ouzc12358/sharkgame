@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Sharky Letters</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ocean: {
+                300: '#4fd1c5',
+                500: '#0ea5e9',
+                800: '#0369a1',
+                900: '#0c4a6e',
+              },
+              sand: '#fef3c7',
+              coral: '#fb7185',
+            },
+            fontFamily: {
+              sans: ['Varela Round', 'ui-rounded', 'system-ui', 'sans-serif'],
+            },
+            animation: {
+              'float': 'float 3s ease-in-out infinite',
+              'bounce-gentle': 'bounce-gentle 2s infinite',
+              'swim-across': 'swim-across 3s linear forwards',
+              'bubble-rise': 'bubble-rise 2s ease-in infinite',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              'bounce-gentle': {
+                '0%, 100%': { transform: 'translateY(-5%)', animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)' },
+                '50%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)' },
+              },
+              'swim-across': {
+                '0%': { transform: 'translateX(-120%) rotate(-5deg)' },
+                '25%': { transform: 'translateX(-50%) rotate(5deg)' },
+                '50%': { transform: 'translateX(0%) rotate(-5deg) scale(1.1)' },
+                '75%': { transform: 'translateX(50%) rotate(5deg)' },
+                '100%': { transform: 'translateX(120%) rotate(-5deg)' },
+              },
+              'bubble-rise': {
+                '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
+                '50%': { opacity: '1' },
+                '100%': { transform: 'translateY(-100px) scale(1.5)', opacity: '0' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+    <style>
+      /* App-like fixed container to prevent body bounce */
+      body, html {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        position: fixed; 
+        overflow: hidden; /* Prevent body scroll, handle scroll in React views */
+        background-color: #e0f2fe;
+        font-family: 'Varela Round', sans-serif;
+        /* Note: removed touch-action: none to allow scrolling in specific divs */
+      }
+      #root {
+        height: 100%;
+        width: 100%;
+      }
+      /* Hide scrollbar for clean UI but keep functionality */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
