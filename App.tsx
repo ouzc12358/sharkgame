@@ -5,12 +5,13 @@ import { LetterConfig, Point, AppView, LetterProgress } from './types';
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
-const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.9) => {
+// rate 0.5 is slower (approx half speed), pitch 1.0 is gentler/natural.
+const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.5) => {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = rate;
-    utterance.pitch = 1.2; 
+    utterance.pitch = 1.0; 
     utterance.lang = lang;
     window.speechSynthesis.speak(utterance);
   }
@@ -165,19 +166,25 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
   const targetPoints = useMemo(() => getPathPoints(letter.svgPath, 150), [letter]);
 
   useEffect(() => {
-    // Play sound on load
-    const timeout = setTimeout(() => {
-      speak(`${letter.char}. ${letter.word}.`, 'en-US');
+    // Sequence: Say letter -> wait ~1.5s -> Say word
+    const letterTimeout = setTimeout(() => {
+      speak(letter.char, 'en-US', 0.5);
     }, 500);
     
+    const wordTimeout = setTimeout(() => {
+      speak(letter.word, 'en-US', 0.5);
+    }, 2000); // 1.5s gap after letter
+
     // Demonstration animation timer
     const demoTimeout = setTimeout(() => {
       setIsDemonstrating(false);
     }, 3500); // Allow time for animation to finish
 
     return () => {
-      clearTimeout(timeout);
+      clearTimeout(letterTimeout);
+      clearTimeout(wordTimeout);
       clearTimeout(demoTimeout);
+      window.speechSynthesis.cancel();
     };
   }, [letter]);
 
@@ -227,11 +234,12 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
 
     const averageError = totalError / currentStroke.length;
     
-    // If average error is too high (scribbling), reject the stroke
-    if (averageError > 8) { // Threshold for "messy" drawing on 100x100 grid
+    // If average error is too high (scribbling), reject the stroke and RESET
+    if (averageError > 8) { // Threshold for "messy" drawing
       setShakeCanvas(true);
-      speak("请沿着线写哦", 'zh-CN'); // "Please write along the line"
+      speak("请沿着线写哦", 'zh-CN', 0.6); // "Please write along the line"
       setCurrentStroke([]);
+      setStrokes([]); // Reset all strokes to give a clean slate
       setTimeout(() => setShakeCanvas(false), 800);
       return;
     }
@@ -278,7 +286,10 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
           <button onClick={() => speak(letter.char, 'en-US')} className="bg-white/80 px-6 py-2 rounded-full font-bold text-ocean-900 shadow-md active:scale-95">
             🔊 {letter.char}
           </button>
-          <button onClick={() => setIsDemonstrating(true)} className="bg-sand p-3 rounded-full text-2xl shadow-md active:scale-90">
+          <button onClick={() => {
+            setIsDemonstrating(true);
+            setStrokes([]); // Reset manually on replay if desired
+          }} className="bg-sand p-3 rounded-full text-2xl shadow-md active:scale-90">
             ↺
           </button>
         </div>
