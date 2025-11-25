@@ -159,6 +159,7 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
   const [isDemonstrating, setIsDemonstrating] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [shakeCanvas, setShakeCanvas] = useState(false);
+  const [guideFlash, setGuideFlash] = useState(false);
   
   const svgRef = useRef<SVGSVGElement>(null);
   
@@ -237,10 +238,14 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
     // If average error is too high (scribbling), reject the stroke and RESET
     if (averageError > 8) { // Threshold for "messy" drawing
       setShakeCanvas(true);
+      setGuideFlash(true); // Visual cue: flash the guide
       speak("请沿着线写哦", 'zh-CN', 0.6); // "Please write along the line"
       setCurrentStroke([]);
       setStrokes([]); // Reset all strokes to give a clean slate
-      setTimeout(() => setShakeCanvas(false), 800);
+      setTimeout(() => {
+        setShakeCanvas(false);
+        setGuideFlash(false);
+      }, 800);
       return;
     }
 
@@ -319,22 +324,24 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
               {/* 1. Guide Background (Gray Outline) */}
               <path 
                 d={letter.svgPath} 
-                stroke="#e2e8f0" 
+                stroke={guideFlash ? "#fb7185" : "#e2e8f0"} 
                 strokeWidth="14" 
                 fill="none" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"
+                className="transition-colors duration-500 ease-in-out"
               />
 
               {/* 2. Target Guide (Dashed Line) */}
               <path 
                 d={letter.svgPath} 
-                stroke="#94a3b8" 
+                stroke={guideFlash ? "#fda4af" : "#94a3b8"} 
                 strokeWidth="2" 
                 fill="none" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"
                 strokeDasharray="4 4"
+                className="transition-colors duration-500 ease-in-out"
               />
 
               {/* 3. Demonstration Animation */}
