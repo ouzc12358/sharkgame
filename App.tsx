@@ -269,8 +269,8 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
 
   return (
     <div className="fixed inset-0 bg-ocean-300 flex flex-col">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4">
+      {/* Header - Fixed at top, flex-none ensures it doesn't shrink */}
+      <div className="flex-none flex justify-between items-center p-4 bg-ocean-300 z-10 shadow-sm">
         <button onClick={onBack} className="bg-white/80 p-3 rounded-full text-2xl shadow-md active:scale-90 transition-transform">
           🏠
         </button>
@@ -284,96 +284,98 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
         </div>
       </div>
 
-      {/* Main Learning Area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-        <div className="text-6xl mb-4 animate-bounce-gentle">{letter.emoji}</div>
-        <div className="text-3xl font-bold text-white mb-8 drop-shadow-md">{letter.word}</div>
+      {/* Main Learning Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col items-center justify-center min-h-full p-4 pb-12">
+          <div className="text-6xl mb-4 animate-bounce-gentle mt-4">{letter.emoji}</div>
+          <div className="text-3xl font-bold text-white mb-8 drop-shadow-md">{letter.word}</div>
 
-        {/* Tracing Canvas Container */}
-        <div className={`relative w-[80vw] max-w-[400px] aspect-square bg-white rounded-3xl shadow-xl overflow-hidden border-8 border-white ${shakeCanvas ? 'animate-[bounce-gentle_0.2s_infinite]' : ''} ${shakeCanvas ? 'border-coral' : ''}`}>
-          
-          <svg 
-            ref={svgRef}
-            viewBox="0 0 100 100" 
-            className="w-full h-full touch-none cursor-crosshair"
-            onTouchStart={handleStart}
-            onTouchMove={handleMove}
-            onTouchEnd={handleEnd}
-            onMouseDown={handleStart}
-            onMouseMove={handleMove}
-            onMouseUp={handleEnd}
-            onMouseLeave={handleEnd}
-          >
-            {/* 1. Guide Background (Gray Outline) */}
-            <path 
-              d={letter.svgPath} 
-              stroke="#e2e8f0" 
-              strokeWidth="14" 
-              fill="none" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-
-            {/* 2. Target Guide (Dashed Line) */}
-            <path 
-              d={letter.svgPath} 
-              stroke="#94a3b8" 
-              strokeWidth="2" 
-              fill="none" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              strokeDasharray="4 4"
-            />
-
-            {/* 3. Demonstration Animation */}
-            {isDemonstrating && (
+          {/* Tracing Canvas Container - shrink-0 prevents flattening on small screens */}
+          <div className={`relative w-[80vw] max-w-[400px] aspect-square bg-white rounded-3xl shadow-xl overflow-hidden border-8 border-white shrink-0 ${shakeCanvas ? 'animate-[bounce-gentle_0.2s_infinite]' : ''} ${shakeCanvas ? 'border-coral' : ''}`}>
+            
+            <svg 
+              ref={svgRef}
+              viewBox="0 0 100 100" 
+              className="w-full h-full touch-none cursor-crosshair"
+              onTouchStart={handleStart}
+              onTouchMove={handleMove}
+              onTouchEnd={handleEnd}
+              onMouseDown={handleStart}
+              onMouseMove={handleMove}
+              onMouseUp={handleEnd}
+              onMouseLeave={handleEnd}
+            >
+              {/* 1. Guide Background (Gray Outline) */}
               <path 
                 d={letter.svgPath} 
-                stroke="#fb7185" 
-                strokeWidth="10" 
+                stroke="#e2e8f0" 
+                strokeWidth="14" 
                 fill="none" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"
-                className="animate-[dash_3s_ease-in-out_forwards]"
-                strokeDasharray="400"
-                strokeDashoffset="400"
-              >
-                <style>{`
-                  @keyframes dash {
-                    to { stroke-dashoffset: 0; }
-                  }
-                `}</style>
-              </path>
-            )}
+              />
 
-            {/* 4. User Strokes */}
-            {strokes.map((stroke, i) => (
+              {/* 2. Target Guide (Dashed Line) */}
+              <path 
+                d={letter.svgPath} 
+                stroke="#94a3b8" 
+                strokeWidth="2" 
+                fill="none" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                strokeDasharray="4 4"
+              />
+
+              {/* 3. Demonstration Animation */}
+              {isDemonstrating && (
+                <path 
+                  d={letter.svgPath} 
+                  stroke="#fb7185" 
+                  strokeWidth="10" 
+                  fill="none" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className="animate-[dash_3s_ease-in-out_forwards]"
+                  strokeDasharray="400"
+                  strokeDashoffset="400"
+                >
+                  <style>{`
+                    @keyframes dash {
+                      to { stroke-dashoffset: 0; }
+                    }
+                  `}</style>
+                </path>
+              )}
+
+              {/* 4. User Strokes */}
+              {strokes.map((stroke, i) => (
+                <polyline 
+                  key={i}
+                  points={stroke.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="none"
+                  stroke="#0ea5e9"
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+              
+              {/* Current Active Stroke */}
               <polyline 
-                key={i}
-                points={stroke.map(p => `${p.x},${p.y}`).join(' ')}
+                points={currentStroke.map(p => `${p.x},${p.y}`).join(' ')}
                 fill="none"
                 stroke="#0ea5e9"
                 strokeWidth="12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            ))}
-            
-            {/* Current Active Stroke */}
-            <polyline 
-              points={currentStroke.map(p => `${p.x},${p.y}`).join(' ')}
-              fill="none"
-              stroke="#0ea5e9"
-              strokeWidth="12"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        
-        {/* Instruction Text */}
-        <div className="mt-6 text-white text-xl font-bold opacity-80">
-          {isDemonstrating ? "仔细看哦..." : "轮到你了！"}
+            </svg>
+          </div>
+          
+          {/* Instruction Text */}
+          <div className="mt-6 text-white text-xl font-bold opacity-80 mb-6">
+            {isDemonstrating ? "仔细看哦..." : "轮到你了！"}
+          </div>
         </div>
       </div>
 
