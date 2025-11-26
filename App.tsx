@@ -5,12 +5,11 @@ import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, 
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
-// rate 0.5 is slower (approx half speed), pitch 1.0 is gentler/natural.
 const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.5) => {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = rate;
+    utterance.rate = rate; // Slower speed
     utterance.pitch = 1.0; 
     utterance.lang = lang;
     window.speechSynthesis.speak(utterance);
@@ -43,57 +42,47 @@ const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: 
 
 // --- Components ---
 
-// 1. Friendly Shark SVG Component (Redesigned with Customization)
+// 1. Friendly Shark SVG Component
 const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({ className, config }) => {
-  // Default to blue and no accessory if not provided
   const { color, accessory } = config || { color: 'blue', accessory: 'none' };
   const palette = SHARK_PALETTES[color];
 
   return (
     <svg viewBox="0 0 200 160" className={className} style={{ overflow: 'visible' }}>
       <g className="animate-float">
-        {/* Tail - Classic Heterocercal Shark Shape */}
+        {/* Tail */}
         <path d="M 160 80 Q 170 80 190 30 L 182 80 L 175 125 Q 165 90 160 80" 
               fill={palette.body} stroke={palette.stroke} strokeWidth="3" strokeLinejoin="round" />
-
-        {/* Body Shape - Streamlined and Shark-like */}
+        {/* Body */}
         <path d="M 30 85 Q 30 35 110 35 Q 160 35 160 80 Q 160 135 90 135 Q 30 135 30 85 Z" 
               fill={palette.body} stroke={palette.stroke} strokeWidth="3" />
-        
-        {/* Belly Patch (Countershading) */}
+        {/* Belly */}
         <path d="M 35 95 Q 90 130 145 105 Q 100 130 35 95" 
               fill={palette.belly} opacity="0.6" />
-
-        {/* Dorsal Fin - Prominent Triangle */}
+        {/* Dorsal Fin */}
         <path d="M 95 40 L 115 5 Q 120 30 140 50" 
               fill={palette.body} stroke={palette.stroke} strokeWidth="3" strokeLinejoin="round" />
-
-        {/* Pectoral Fin (Side) */}
+        {/* Pectoral Fin */}
         <path d="M 105 95 Q 95 135 70 145 Q 115 125 130 105" 
               fill={palette.fin} stroke={palette.stroke} strokeWidth="3" strokeLinejoin="round" 
               className="animate-[bounce_2s_infinite]" />
-
-        {/* Gills - Distinctive Feature */}
+        {/* Gills */}
         <path d="M 130 70 Q 125 80 130 90" fill="none" stroke="#0c4a6e" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
         <path d="M 140 70 Q 135 80 140 90" fill="none" stroke="#0c4a6e" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
         <path d="M 150 70 Q 145 80 150 90" fill="none" stroke="#0c4a6e" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-
-        {/* Eyes - Big & Friendly */}
+        {/* Eyes */}
         <g transform="translate(55, 65)">
            <circle r="13" fill="white" stroke="#0c4a6e" strokeWidth="2" />
            <circle r="5" fill="black" cx="3">
               <animate attributeName="cx" values="3;6;3" dur="4s" repeatCount="indefinite" />
            </circle>
-           {/* Cute Eyebrow */}
            <path d="M -10 -18 Q 0 -25 10 -18" fill="none" stroke="#0c4a6e" strokeWidth="2" opacity="0.6"/>
         </g>
-
-        {/* Mouth - Friendly Smile */}
+        {/* Mouth */}
         <path d="M 40 95 Q 60 110 80 95" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" />
-        {/* Tiny Tooth (Cute) */}
         <path d="M 75 102 L 78 107 L 81 100" fill="white" stroke="none" />
-
-        {/* --- Accessories --- */}
+        
+        {/* Accessories */}
         {accessory === 'hat' && (
           <g transform="translate(90, 15) rotate(-10)">
             <path d="M 0 20 L 40 20 L 20 -20 Z" fill="#fbbf24" stroke="#d97706" strokeWidth="2" />
@@ -101,7 +90,6 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
             <path d="M 0 20 Q 20 25 40 20" fill="none" stroke="#d97706" strokeWidth="2" />
           </g>
         )}
-
         {accessory === 'glasses' && (
           <g transform="translate(58, 65)">
             <circle cx="-5" cy="0" r="15" fill="#1f2937" opacity="0.8" />
@@ -110,7 +98,6 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
             <path d="M 10 0 L 10 0" stroke="#1f2937" strokeWidth="2" />
           </g>
         )}
-        
         {accessory === 'bowtie' && (
           <g transform="translate(60, 115) rotate(10)">
             <path d="M 0 0 L -10 -10 L -10 10 Z" fill="#ef4444" stroke="#b91c1c" strokeWidth="2" />
@@ -131,9 +118,7 @@ const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> =
   };
 
   return (
-    // Changed min-h-screen to h-full
     <div className="h-full bg-ocean-500 flex flex-col items-center justify-center overflow-hidden relative selection:bg-none">
-      {/* Animated Background Bubbles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute bottom-0 left-10 text-4xl animate-bubble-rise opacity-0" style={{animationDelay: '0s'}}>🫧</div>
         <div className="absolute bottom-0 left-1/4 text-2xl animate-bubble-rise opacity-0" style={{animationDelay: '1.5s'}}>🫧</div>
@@ -141,7 +126,6 @@ const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> =
         <div className="absolute bottom-0 right-10 text-3xl animate-bubble-rise opacity-0" style={{animationDelay: '2s'}}>🫧</div>
       </div>
 
-      {/* Main Character & Title */}
       <div className="z-10 flex flex-col items-center text-center p-4">
         <div className="w-64 h-48 mb-4 cursor-pointer transform transition-transform active:scale-95 flex items-center justify-center" onClick={() => speak("我是鲨鱼宝宝！", 'zh-CN')}>
           <FriendlyShark className="w-full h-full drop-shadow-2xl" config={sharkConfig} />
@@ -166,7 +150,7 @@ const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> =
   );
 };
 
-// NEW: Settings Modal
+// 3. Settings Modal
 const SettingsModal: React.FC<{ 
   isOpen: boolean, 
   onClose: () => void, 
@@ -239,10 +223,9 @@ const SettingsModal: React.FC<{
   );
 };
 
-// NEW: Confetti Component
+// 4. Confetti Component
 const Confetti: React.FC = () => {
-  // Generate random particles once
-  const particles = useMemo(() => Array.from({ length: 60 }).map((_, i) => ({
+  const particles = useMemo(() => Array.from({ length: 80 }).map((_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 0.2, 
@@ -274,145 +257,224 @@ const Confetti: React.FC = () => {
   );
 };
 
-// 3. Shark Reward Animation
+// 5. Shark Reward Animation
+// Enhanced to support multiple random animation types
 const SharkReward: React.FC<{ sharkConfig: SharkConfig }> = ({ sharkConfig }) => {
+  const [animationType, setAnimationType] = useState('celebration-swim');
+
   useEffect(() => {
     speak("太棒了！", 'zh-CN');
+    const types = [
+      'celebration-swim', 
+      'celebration-spin', 
+      'celebration-jump',
+      'celebration-zigzag'
+    ];
+    // Randomly select an animation
+    setAnimationType(types[Math.floor(Math.random() * types.length)]);
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      {/* Added Confetti Background */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm overflow-hidden">
+      <style>{`
+        /* Classic Swim */
+        @keyframes celebration-swim {
+          0% { transform: translate(-100vw, 100px) rotate(-15deg) scale(0.5); opacity: 0; }
+          20% { transform: translate(-50vw, 50px) rotate(10deg) scale(0.8); opacity: 1; }
+          40% { transform: translate(-5vw, -50px) rotate(-10deg) scale(1.2); }
+          50% { transform: translate(0, 0) rotate(0deg) scale(1.5); }
+          60% { transform: translate(5vw, -50px) rotate(10deg) scale(1.2); }
+          80% { transform: translate(50vw, 50px) rotate(-10deg) scale(0.8); opacity: 1; }
+          100% { transform: translate(100vw, 100px) rotate(15deg) scale(0.5); opacity: 0; }
+        }
+        /* Happy Spin */
+        @keyframes celebration-spin {
+          0% { transform: scale(0); opacity: 0; }
+          30% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+          50% { transform: scale(1) rotate(180deg); }
+          70% { transform: scale(1.2) rotate(360deg); }
+          100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        /* Jump */
+        @keyframes celebration-jump {
+          0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+          40% { transform: translateY(0) scale(1.5); opacity: 1; }
+          50% { transform: translateY(-20px) scale(1.6); }
+          60% { transform: translateY(0) scale(1.5); }
+          100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+        }
+        /* Zigzag */
+        @keyframes celebration-zigzag {
+          0% { transform: translate(-100vw, 0) scale(0.8); }
+          25% { transform: translate(-50vw, -100px) rotate(15deg) scale(1); }
+          50% { transform: translate(0, 0) rotate(-15deg) scale(1.2); }
+          75% { transform: translate(50vw, -100px) rotate(15deg) scale(1); }
+          100% { transform: translate(100vw, 0) scale(0.8); }
+        }
+
+        @keyframes text-pop {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.2); opacity: 1; }
+          70% { transform: scale(0.9); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
       <Confetti />
-      
-      <div className="absolute animate-swim-across w-64 h-64 md:w-96 md:h-96 z-10">
+      <div 
+        className="absolute z-20 w-64 h-64 md:w-96 md:h-96"
+        style={{ animation: `${animationType} 3.5s ease-in-out forwards` }}
+      >
         <FriendlyShark className="w-full h-full drop-shadow-2xl" config={sharkConfig} />
       </div>
-      
-      {/* Celebration Particles */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-         <div className="text-6xl animate-bounce-gentle" style={{animationDelay: '0.1s'}}>🫧</div>
-         <div className="text-5xl animate-bounce-gentle absolute top-1/4 left-1/4" style={{animationDelay: '0.3s'}}>🫧</div>
-         <div className="text-5xl animate-bounce-gentle absolute bottom-1/4 right-1/4" style={{animationDelay: '0.5s'}}>🫧</div>
-      </div>
-      
-      <div className="absolute top-1/4 text-white text-6xl font-black drop-shadow-lg animate-pulse z-20">
+      <div 
+        className="absolute z-30 text-6xl md:text-8xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
+        style={{ animation: 'text-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1.5s forwards', opacity: 0, transform: 'scale(0)' }}
+      >
         太棒了!
       </div>
     </div>
   );
 };
 
-// 4. Letter View
-const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplete: () => void, sharkConfig: SharkConfig }> = ({ letter, onBack, onComplete, sharkConfig }) => {
+// 6. Home View
+const HomeView: React.FC<{ 
+  progress: LetterProgress, 
+  onSelectLetter: (letter: LetterConfig) => void,
+  onOpenSettings: () => void 
+}> = ({ progress, onSelectLetter, onOpenSettings }) => {
+  return (
+    <div className="h-full bg-ocean-500 overflow-y-auto">
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
+        <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
+          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">字母表</h1>
+          <button 
+            onClick={onOpenSettings}
+            className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+          >
+            <span className="text-3xl">⚙️</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-12">
+          {LETTERS.map((letter) => {
+            const isCompleted = progress[letter.char];
+            return (
+              <div
+                key={letter.char}
+                onClick={() => onSelectLetter(letter)}
+                className={`
+                  relative aspect-square rounded-3xl flex flex-col items-center justify-center cursor-pointer
+                  transition-all duration-200 shadow-[0_6px_0_rgba(0,0,0,0.1)] active:translate-y-1 active:shadow-none
+                  ${isCompleted ? 'bg-sand text-ocean-900 ring-4 ring-yellow-400' : 'bg-white text-gray-700 hover:bg-ocean-100'}
+                `}
+              >
+                {/* Sound Button on the card */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent opening the letter view
+                    speak(letter.char.toLowerCase(), 'en-US');
+                  }}
+                  className="absolute top-2 right-2 w-10 h-10 bg-ocean-100 rounded-full flex items-center justify-center text-xl hover:bg-ocean-200 active:scale-90 transition-transform"
+                >
+                  🔊
+                </button>
+
+                <span className="text-6xl md:text-7xl font-black mb-2 select-none">{letter.char}</span>
+                {isCompleted && (
+                  <div className="absolute bottom-2 right-2 text-3xl animate-bounce-gentle">
+                    🦈
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 7. Letter Tracing View
+const LetterView: React.FC<{ 
+  letter: LetterConfig, 
+  onBack: () => void, 
+  onComplete: () => void,
+  sharkConfig: SharkConfig
+}> = ({ letter, onBack, onComplete, sharkConfig }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDemonstrating, setIsDemonstrating] = useState(true);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [shakeCanvas, setShakeCanvas] = useState(false);
+  const [averageError, setAverageError] = useState(0);
   const [guideFlash, setGuideFlash] = useState(false);
   const [showLowercase, setShowLowercase] = useState(false);
-  
-  const svgRef = useRef<SVGSVGElement>(null);
-  
-  // Calculate target points from SVG path for validation
-  const targetPoints = useMemo(() => getPathPoints(letter.svgPath, 150), [letter]);
 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
+  const isDragging = useRef(false);
+
+  // Initial demonstration and audio
   useEffect(() => {
-    // Sequence: Say letter -> wait ~1.5s -> Say word
-    // Use lowercase char for pronunciation to avoid "Capital A"
-    const letterTimeout = setTimeout(() => {
-      speak(letter.char.toLowerCase(), 'en-US', 0.5);
-    }, 500);
+    setStrokes([]);
+    setIsDemonstrating(true);
     
-    const wordTimeout = setTimeout(() => {
-      speak(letter.word, 'en-US', 0.5);
-    }, 2000); // 1.5s gap after letter
+    // Audio Sequence: Letter -> Wait -> Word
+    speak(letter.char.toLowerCase(), 'en-US'); // Say letter
+    const wordTimer = setTimeout(() => {
+      speak(letter.word, 'en-US'); // Say word
+    }, 1500);
 
-    // Demonstration animation timer
-    const demoTimeout = setTimeout(() => {
-      setIsDemonstrating(false);
-    }, 3500); // Allow time for animation to finish
-
+    const timer = setTimeout(() => setIsDemonstrating(false), 3500); // Wait for demo animation
+    
     return () => {
-      clearTimeout(letterTimeout);
-      clearTimeout(wordTimeout);
-      clearTimeout(demoTimeout);
-      window.speechSynthesis.cancel();
+      clearTimeout(timer);
+      clearTimeout(wordTimer);
     };
   }, [letter]);
 
-  // Handle Manual Replay/Reset
+  // Handle re-drawing
   const handleReplay = () => {
-    setIsDemonstrating(true);
     setStrokes([]);
-    speak("我们再试一次", 'zh-CN', 0.6);
-    // Important: We must re-enable drawing after the demo finishes
+    setCurrentStroke([]);
+    setAverageError(0);
+    setIsDemonstrating(true);
+    speak(letter.char.toLowerCase(), 'en-US');
+    
     setTimeout(() => {
       setIsDemonstrating(false);
     }, 3500);
   };
 
-  // Touch Handling
-  const getTouchPos = (e: React.TouchEvent | React.MouseEvent): Point | null => {
-    if (!svgRef.current) return null;
-    const svgRect = svgRef.current.getBoundingClientRect();
-    
+  // Canvas drawing logic
+  const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
-    // Map screen coordinates to SVG viewBox 0-100
+    
+    // Map to 0-100 coordinate space
     return {
-      x: ((clientX - svgRect.left) / svgRect.width) * 100,
-      y: ((clientY - svgRect.top) / svgRect.height) * 100
+      x: ((clientX - rect.left) / rect.width) * 100,
+      y: ((clientY - rect.top) / rect.height) * 100
     };
   };
 
-  const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
-    if (showSuccess || isDemonstrating) return;
-    const pos = getTouchPos(e);
-    if (pos) setCurrentStroke([pos]);
+  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isDemonstrating) return;
+    isDragging.current = true;
+    const p = getCanvasPoint(e);
+    setCurrentStroke([p]);
   };
 
-  const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (showSuccess || isDemonstrating || currentStroke.length === 0) return;
-    const pos = getTouchPos(e);
-    if (pos) {
-      setCurrentStroke(prev => [...prev, pos]);
-    }
+  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging.current || isDemonstrating) return;
+    e.preventDefault(); // Prevent scrolling while drawing
+    const p = getCanvasPoint(e);
+    setCurrentStroke(prev => [...prev, p]);
   };
 
   const handleEnd = () => {
-    if (showSuccess || isDemonstrating || currentStroke.length === 0) return;
-    
-    // -- STRICTURE CHECK (Anti-Scribble) --
-    // Check average distance of the stroke from the guide line
-    let totalError = 0;
-    currentStroke.forEach(p => {
-      let minD = Infinity;
-      targetPoints.forEach(tp => {
-        const d = dist(p, tp);
-        if (d < minD) minD = d;
-      });
-      totalError += minD;
-    });
-
-    const averageError = totalError / currentStroke.length;
-    
-    // If average error is too high (scribbling), reject the stroke and RESET
-    if (averageError > 8) { // Threshold for "messy" drawing
-      setShakeCanvas(true);
-      setGuideFlash(true); // Visual cue: flash the guide
-      speak("请沿着线写哦", 'zh-CN', 0.6); // "Please write along the line"
-      setCurrentStroke([]);
-      setStrokes([]); // Reset all strokes to give a clean slate
-      setTimeout(() => {
-        setShakeCanvas(false);
-        setGuideFlash(false);
-      }, 800);
-      return;
-    }
-
+    if (!isDragging.current) return;
+    isDragging.current = false;
     const newStrokes = [...strokes, currentStroke];
     setStrokes(newStrokes);
     setCurrentStroke([]);
@@ -420,286 +482,281 @@ const LetterView: React.FC<{ letter: LetterConfig, onBack: () => void, onComplet
   };
 
   const checkSuccess = (currentStrokes: Point[][]) => {
-    // Flatten user points
-    const userPoints = currentStrokes.flat();
-    if (userPoints.length < 10) return;
+    const allUserPoints = currentStrokes.flat();
+    if (allUserPoints.length < 10) return;
 
-    // 1. Coverage: How many target points are "close enough" to a user point?
+    let totalDist = 0;
+    let maxDist = 0;
+
+    // Check 1: Average distance from guide path (Precision)
+    for (const p of allUserPoints) {
+      let minDist = Infinity;
+      for (const targetP of pathPoints) {
+        const d = dist(p, targetP);
+        if (d < minDist) minDist = d;
+      }
+      totalDist += minDist;
+      if (minDist > maxDist) maxDist = minDist;
+    }
+    const avgError = totalDist / allUserPoints.length;
+    setAverageError(avgError);
+
+    // ANTI-SCRIBBLE CHECK:
+    // If drawing is too far from the line on average, reject it immediately.
+    if (avgError > 8) { // Threshold for "messy"
+       speak("请沿着线写", 'zh-CN');
+       setGuideFlash(true); // Trigger visual flash
+       setTimeout(() => setGuideFlash(false), 800);
+       setStrokes([]); // Reset strokes
+       return;
+    }
+
+    // Check 2: Coverage (Completeness)
     let coveredCount = 0;
-    const coverageThreshold = 7; // Distance to consider "covered"
+    const coverageThreshold = 7; 
     
-    targetPoints.forEach(tp => {
-      const isCovered = userPoints.some(up => dist(tp, up) < coverageThreshold);
+    for (const targetP of pathPoints) {
+      let isCovered = false;
+      for (const p of allUserPoints) {
+        if (dist(p, targetP) < coverageThreshold) {
+          isCovered = true;
+          break;
+        }
+      }
       if (isCovered) coveredCount++;
-    });
+    }
 
-    const coverage = coveredCount / targetPoints.length;
+    const coverage = coveredCount / pathPoints.length;
 
-    // 2. Strict completion requirement
-    if (coverage > 0.92) {
-      setShowSuccess(true);
-      setTimeout(() => {
-        onComplete();
-      }, 3500); // Wait for shark animation
+    // Success Condition: High coverage + Low error
+    if (coverage > 0.92 && avgError < 6) {
+      setTimeout(onComplete, 500);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-ocean-300 flex flex-col">
-      {/* Header - Fixed at top, flex-none ensures it doesn't shrink */}
-      <div className="flex-none flex justify-between items-center p-4 bg-ocean-300 z-10 shadow-sm">
-        <button onClick={onBack} className="bg-white/80 p-3 rounded-full text-2xl shadow-md active:scale-90 transition-transform">
-          🏠
+    <div className="h-full flex flex-col bg-ocean-500">
+      {/* Header - Fixed at top */}
+      <div className="flex-none flex justify-between items-center p-4">
+        <button onClick={onBack} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
+          🔙
         </button>
-        <div className="flex items-center space-x-3">
-           {/* Lowercase Toggle */}
-           <button 
-            onClick={() => setShowLowercase(!showLowercase)} 
-            className={`w-12 h-12 rounded-full font-black text-xl shadow-md active:scale-95 flex items-center justify-center transition-colors ${showLowercase ? 'bg-ocean-500 text-white' : 'bg-white/80 text-ocean-900'}`}
+        <div className="flex gap-4">
+          <button 
+             onClick={() => setShowLowercase(!showLowercase)} 
+             className={`bg-white/20 px-4 py-2 rounded-xl text-white font-bold text-xl active:scale-95 border-2 ${showLowercase ? 'border-white bg-white/30' : 'border-transparent'}`}
           >
             Aa
           </button>
-          
-          <button onClick={() => speak(letter.char.toLowerCase(), 'en-US')} className="bg-white/80 px-6 py-2 rounded-full font-bold text-ocean-900 shadow-md active:scale-95">
-            🔊 {letter.char}
-          </button>
-          <button onClick={handleReplay} className="bg-sand p-3 rounded-full text-2xl shadow-md active:scale-90">
+          <button onClick={handleReplay} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
             ↺
           </button>
         </div>
       </div>
 
-      {/* Main Learning Area - Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="flex flex-col items-center justify-center min-h-full p-4 pb-12">
+      {/* Main Content - Scrollable if needed, but flex-centered usually */}
+      <div className="flex-1 overflow-y-auto w-full">
+        <div className="min-h-full flex flex-col items-center justify-center p-4">
           
-          {/* Emoji */}
-          <div className="text-6xl mb-4 animate-bounce-gentle mt-4">{letter.emoji}</div>
-          
-          {/* Letter Text Display: Shows "A" or "A a" */}
-          <div className="text-6xl font-black text-white drop-shadow-md mb-2 flex items-baseline gap-4">
-              <span>{letter.char}</span>
-              {showLowercase && <span className="text-5xl opacity-90">{letter.char.toLowerCase()}</span>}
-          </div>
+          <div className="bg-white rounded-[3rem] p-6 shadow-2xl flex flex-col items-center w-full max-w-2xl relative">
+            {/* Visual Guide Flash Overlay (Anti-scribble feedback) */}
+            <div className={`absolute inset-0 rounded-[3rem] border-8 pointer-events-none transition-colors duration-300 ${guideFlash ? 'border-coral animate-pulse' : 'border-transparent'}`}></div>
 
-          <div className="text-3xl font-bold text-white mb-8 drop-shadow-md">{letter.word}</div>
+            <div className="flex items-center gap-8 mb-4">
+              <span className="text-8xl md:text-9xl font-black text-ocean-900 select-none">
+                {showLowercase ? `${letter.char} ${letter.char.toLowerCase()}` : letter.char}
+              </span>
+              <div className="flex flex-col items-center">
+                <span className="text-6xl select-none animate-bounce-gentle">{letter.emoji}</span>
+                <span className="text-2xl text-gray-500 font-bold mt-2">{letter.word}</span>
+              </div>
+            </div>
 
-          {/* Tracing Canvas Container - shrink-0 prevents flattening on small screens */}
-          <div className={`relative w-[80vw] max-w-[400px] aspect-square bg-white rounded-3xl shadow-xl overflow-hidden border-8 border-white shrink-0 ${shakeCanvas ? 'animate-[bounce-gentle_0.2s_infinite]' : ''} ${shakeCanvas ? 'border-coral' : ''}`}>
-            
-            <svg 
-              ref={svgRef}
-              viewBox="0 0 100 100" 
-              className="w-full h-full touch-none cursor-crosshair"
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
-              onMouseDown={handleStart}
-              onMouseMove={handleMove}
-              onMouseUp={handleEnd}
-              onMouseLeave={handleEnd}
-            >
-              {/* 1. Guide Background (Gray Outline) */}
-              <path 
-                d={letter.svgPath} 
-                stroke={guideFlash ? "#fb7185" : "#e2e8f0"} 
-                strokeWidth="14" 
-                fill="none" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                className="transition-colors duration-500 ease-in-out"
-              />
+            {/* Tracing Area */}
+            <div className={`relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] shrink-0 touch-none ${guideFlash ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+              <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
+                <defs>
+                   <path id="letterPath" d={letter.svgPath} />
+                   <filter id="glow">
+                      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                   </filter>
+                </defs>
 
-              {/* 2. Target Guide (Dashed Line) */}
-              <path 
-                d={letter.svgPath} 
-                stroke={guideFlash ? "#fda4af" : "#94a3b8"} 
-                strokeWidth="2" 
-                fill="none" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                strokeDasharray="4 4"
-                className="transition-colors duration-500 ease-in-out"
-              />
-
-              {/* 3. Demonstration Animation */}
-              {isDemonstrating && (
-                <path 
-                  d={letter.svgPath} 
-                  stroke="#fb7185" 
-                  strokeWidth="10" 
+                {/* Dashed Background Guide - Mimics worksheet */}
+                <use 
+                  href="#letterPath" 
+                  stroke={guideFlash ? '#fb7185' : '#e5e7eb'} 
+                  strokeWidth="12" 
+                  strokeDasharray="16 16"
                   fill="none" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
-                  className="animate-[dash_3s_ease-in-out_forwards]"
-                  strokeDasharray="400"
-                  strokeDashoffset="400"
-                >
-                  <style>{`
-                    @keyframes dash {
-                      to { stroke-dashoffset: 0; }
-                    }
-                  `}</style>
-                </path>
-              )}
-
-              {/* 4. User Strokes */}
-              {strokes.map((stroke, i) => (
-                <polyline 
-                  key={i}
-                  points={stroke.map(p => `${p.x},${p.y}`).join(' ')}
-                  fill="none"
-                  stroke="#0ea5e9"
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  className="transition-colors duration-300"
                 />
-              ))}
-              
-              {/* Current Active Stroke */}
-              <polyline 
-                points={currentStroke.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="none"
-                stroke="#0ea5e9"
-                strokeWidth="12"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+
+                {/* Start Point Indicator (Green Dot) */}
+                {!strokes.length && !isDemonstrating && pathPoints.length > 0 && (
+                  <circle 
+                    cx={pathPoints[0].x} 
+                    cy={pathPoints[0].y} 
+                    r="8" 
+                    fill="#4ade80" 
+                    className="animate-pulse"
+                    stroke="white" 
+                    strokeWidth="2"
+                  />
+                )}
+                
+                {/* Demonstration Animation Stroke + Moving Cursor */}
+                {isDemonstrating && (
+                  <>
+                    <use 
+                      href="#letterPath" 
+                      stroke="#fbbf24" 
+                      strokeWidth="12" 
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="animate-[dash_3.5s_linear_forwards]"
+                      strokeDasharray="300"
+                      strokeDashoffset="300"
+                    />
+                    {/* Moving Pencil Icon showing direction */}
+                    <circle r="8" fill="#fbbf24" stroke="white" strokeWidth="2" filter="url(#glow)">
+                        <animateMotion dur="3.5s" fill="freeze" calcMode="linear">
+                           <mpath href="#letterPath" />
+                        </animateMotion>
+                    </circle>
+                  </>
+                )}
+                
+                {/* Render User Strokes */}
+                {strokes.map((stroke, i) => (
+                  <polyline 
+                    key={i} 
+                    points={stroke.map(p => `${p.x},${p.y}`).join(' ')} 
+                    fill="none" 
+                    stroke="#0ea5e9" 
+                    strokeWidth="12" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                  />
+                ))}
+                {/* Current Active Stroke */}
+                <polyline 
+                  points={currentStroke.map(p => `${p.x},${p.y}`).join(' ')} 
+                  fill="none" 
+                  stroke="#0ea5e9" 
+                  strokeWidth="12" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                />
+              </svg>
+
+              {/* Interaction Layer */}
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full cursor-crosshair opacity-0"
+                width={400}
+                height={400}
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onMouseLeave={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
               />
-            </svg>
-          </div>
-          
-          {/* Instruction Text */}
-          <div className="mt-6 text-white text-xl font-bold opacity-80 mb-6">
-            {isDemonstrating ? "仔细看哦..." : "轮到你了！"}
+            </div>
+            
+            <p className="mt-6 text-gray-400 font-bold text-lg">
+              {isDemonstrating ? "看这里！" : "请沿着线写"}
+            </p>
           </div>
         </div>
       </div>
-
-      {showSuccess && <SharkReward sharkConfig={sharkConfig} />}
-    </div>
-  );
-};
-
-// 5. Home View
-const HomeView: React.FC<{ 
-  progress: LetterProgress, 
-  onSelect: (l: LetterConfig) => void,
-  onOpenSettings: () => void 
-}> = ({ progress, onSelect, onOpenSettings }) => {
-  return (
-    // Changed min-h-screen to h-full to allow proper scrolling within fixed body
-    <div className="h-full bg-ocean-100 p-4 overflow-y-auto pb-24">
-      <div className="flex justify-between items-center max-w-6xl mx-auto mt-4 mb-8 px-4">
-        <h1 className="text-4xl font-black text-ocean-900 drop-shadow-sm">
-          字母表
-        </h1>
-        <button 
-          onClick={onOpenSettings}
-          className="bg-white p-3 rounded-full shadow-lg border-2 border-ocean-200 text-2xl hover:bg-ocean-50 active:scale-95 transition-transform"
-          aria-label="Settings"
-        >
-          ⚙️
-        </button>
-      </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
-        {LETTERS.map((letter) => {
-          const isDone = progress[letter.char];
-          return (
-            <div 
-              key={letter.char}
-              className={`
-                relative bg-white rounded-2xl shadow-lg p-2 flex flex-col items-center justify-center aspect-[4/3]
-                transform transition-all duration-200 hover:scale-105 active:scale-95 border-b-4
-                ${isDone ? 'border-ocean-500 bg-ocean-50 ring-2 ring-ocean-200' : 'border-gray-200'}
-              `}
-              onClick={() => onSelect(letter)}
-            >
-              <div className="flex justify-between w-full px-2 mb-1">
-                 {/* Completion Indicator */}
-                {isDone ? <span className="text-lg">🦈</span> : <span></span>}
-                
-                {/* Sound Button inside the card */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent opening the letter view
-                    speak(letter.char.toLowerCase(), 'en-US');
-                  }}
-                  className="w-8 h-8 flex items-center justify-center bg-ocean-100 text-ocean-600 rounded-full hover:bg-ocean-200 active:scale-90 transition-colors"
-                >
-                  🔊
-                </button>
-              </div>
-
-              <div className="text-6xl font-black text-gray-800 mb-1 leading-none font-sans">
-                {letter.char}
-              </div>
-              
-              <div className="text-sm text-gray-500 font-medium">
-                {letter.word}
-              </div>
-            </div>
-          );
-        })}
+      {/* Footer / Shark Helper */}
+      <div className="flex-none p-4 flex justify-center pointer-events-none">
+        <FriendlyShark className="w-24 h-24" config={sharkConfig} />
       </div>
     </div>
   );
 };
 
-// --- Main App ---
-const App: React.FC = () => {
+// 8. Main App
+export default function App() {
   const [view, setView] = useState<AppView>(AppView.INTRO);
-  const [activeLetter, setActiveLetter] = useState<LetterConfig | null>(null);
-  const [progress, setProgress] = useState<LetterProgress>({});
-  
-  // Customization State
+  const [currentLetter, setCurrentLetter] = useState<LetterConfig | null>(null);
+  const [completedLetters, setCompletedLetters] = useState<LetterProgress>({});
+  const [showReward, setShowReward] = useState(false);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>({ color: 'blue', accessory: 'none' });
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const handleStart = () => {
-    setView(AppView.HOME);
-  };
+  const handleStart = () => setView(AppView.HOME);
 
   const handleSelectLetter = (letter: LetterConfig) => {
-    setActiveLetter(letter);
+    setCurrentLetter(letter);
     setView(AppView.LETTER);
   };
 
-  const handleCompleteLetter = () => {
-    if (activeLetter) {
-      setProgress(prev => ({ ...prev, [activeLetter.char]: true }));
-      setView(AppView.HOME);
-      setActiveLetter(null);
+  const handleComplete = () => {
+    if (currentLetter) {
+      setCompletedLetters(prev => ({ ...prev, [currentLetter.char]: true }));
+      setShowReward(true);
+      setTimeout(() => {
+        setShowReward(false);
+        setView(AppView.HOME);
+        setCurrentLetter(null);
+      }, 4000);
     }
   };
 
   return (
-    <>
+    <div className="h-full w-full relative">
+      <style>{`
+        @keyframes dash {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+      `}</style>
+      
+      {view === AppView.INTRO && (
+        <IntroScreen onStart={handleStart} sharkConfig={sharkConfig} />
+      )}
+
+      {view === AppView.HOME && (
+        <HomeView 
+          progress={completedLetters} 
+          onSelectLetter={handleSelectLetter} 
+          onOpenSettings={() => setShowSettings(true)}
+        />
+      )}
+
+      {view === AppView.LETTER && currentLetter && (
+        <LetterView 
+          letter={currentLetter} 
+          onBack={() => setView(AppView.HOME)} 
+          onComplete={handleComplete}
+          sharkConfig={sharkConfig}
+        />
+      )}
+
+      {showReward && (
+        <SharkReward sharkConfig={sharkConfig} />
+      )}
+
       <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)}
         config={sharkConfig}
         onChange={setSharkConfig}
       />
-      
-      {view === AppView.INTRO && <IntroScreen onStart={handleStart} sharkConfig={sharkConfig} />}
-      {view === AppView.HOME && (
-        <HomeView 
-          progress={progress} 
-          onSelect={handleSelectLetter} 
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-      )}
-      {view === AppView.LETTER && activeLetter && (
-        <LetterView 
-          letter={activeLetter} 
-          onBack={() => setView(AppView.HOME)} 
-          onComplete={handleCompleteLetter}
-          sharkConfig={sharkConfig} 
-        />
-      )}
-    </>
+    </div>
   );
-};
-
-export default App;
+}
