@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LETTERS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
@@ -379,8 +380,8 @@ const ImageGenModal: React.FC<{
   const [error, setError] = useState('');
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
   
-  // Suggest a prompt if empty
-  const defaultPrompt = `Cute cartoon ${letter.word}, 3d render, vivid colors, children's book style`;
+  // Default prompt designed for generation
+  const defaultPrompt = `Cute cartoon ${letter.word}, 3d render, vivid colors, children's book style illustration, white background`;
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -388,14 +389,24 @@ const ImageGenModal: React.FC<{
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const activePrompt = prompt.trim() || defaultPrompt;
+      
+      // Enforce style consistency for children's app
+      const styleSuffix = ", vivid children's book illustration style, 3d render, cute, colorful";
+      let activePrompt = prompt.trim();
+      
+      if (!activePrompt) {
+        activePrompt = defaultPrompt; 
+      } else {
+        // If user provides a prompt (e.g., "Add sunglasses"), we append style instructions
+        // to ensure the output remains appropriate for the app's theme.
+        activePrompt = `${activePrompt} ${styleSuffix}`;
+      }
       
       let response;
       
       // If we have an existing custom image, we edit it
       if (currentImage) {
          // Image-to-Image / Editing
-         // Extract base64 data
          const base64Data = currentImage.split(',')[1];
          response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
@@ -403,7 +414,7 @@ const ImageGenModal: React.FC<{
               parts: [
                 {
                   inlineData: {
-                    mimeType: 'image/png', // Assuming png for simplicity
+                    mimeType: 'image/png', 
                     data: base64Data
                   }
                 },
@@ -461,7 +472,7 @@ const ImageGenModal: React.FC<{
 
         <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col items-center mb-6">
-             <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden mb-4 shadow-inner">
+             <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden mb-4 shadow-inner relative">
                 {generatedPreview ? (
                   <img src={generatedPreview} alt="Generated" className="w-full h-full object-cover" />
                 ) : currentImage ? (
@@ -475,16 +486,18 @@ const ImageGenModal: React.FC<{
           </div>
 
           <div className="mb-4">
-            <label className="block text-gray-700 font-bold mb-2">描述你想画什么 (Prompt):</label>
+            <label className="block text-gray-700 font-bold mb-2">
+              {currentImage ? "描述你想怎么修改 (Edit):" : "描述你想画什么 (Create):"}
+            </label>
             <textarea 
               className="w-full p-3 border-2 border-ocean-200 rounded-xl focus:border-ocean-500 focus:outline-none"
               rows={3}
-              placeholder={defaultPrompt}
+              placeholder={currentImage ? "Add a hat, Remove background..." : defaultPrompt}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Example: "Add a hat", "Make it blue", "Oil painting style"
+              Gemini will enhance your prompt to make it vivid and cute!
             </p>
           </div>
         </div>
@@ -497,7 +510,7 @@ const ImageGenModal: React.FC<{
               ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-ocean-500 hover:bg-ocean-600'}
             `}
           >
-            {currentImage ? "编辑 (Edit)" : "生成 (Generate)"}
+            {currentImage ? "修改图片 (Update)" : "生成图片 (Create)"}
           </button>
           
           {generatedPreview && (
