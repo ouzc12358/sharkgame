@@ -32,6 +32,36 @@ const getPathPoints = (svgPathString: string, numPoints = 100): Point[] => {
   return points;
 };
 
+// Helper to extract stroke start points and directions for guides
+const getStrokeGuides = (d: string) => {
+  if (!d) return [];
+  // Split by Move commands (M or m) to separate strokes
+  const segments = d.split(/(?=[Mm])/).filter(s => s.trim().length > 0);
+  
+  return segments.map((seg, i) => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', seg);
+    
+    const len = path.getTotalLength();
+    if (len === 0) return null;
+
+    const start = path.getPointAtLength(0);
+    // Use a small offset relative to stroke length, but clamp it to avoid going too far
+    const offset = Math.min(8, len / 2);
+    const end = path.getPointAtLength(offset); 
+    
+    // Calculate angle in degrees
+    const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+    
+    return {
+      id: i + 1,
+      x: start.x,
+      y: start.y,
+      angle
+    };
+  }).filter((g): g is { id: number, x: number, y: number, angle: number } => !!g);
+};
+
 // --- Shark Customization Data ---
 const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: string, fin: string }> = {
   blue: { body: '#0ea5e9', stroke: '#0369a1', belly: '#bae6fd', fin: '#0284c7' },
@@ -410,6 +440,9 @@ const LetterView: React.FC<{
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
+  // Calculate guides (stroke order indicators)
+  const guides = useMemo(() => getStrokeGuides(letter.svgPath), [letter]);
+  
   const isDragging = useRef(false);
 
   // Initial demonstration and audio
@@ -595,18 +628,29 @@ const LetterView: React.FC<{
                   className="transition-colors duration-300"
                 />
 
-                {/* Start Point Indicator (Green Dot) */}
-                {!strokes.length && !isDemonstrating && pathPoints.length > 0 && (
-                  <circle 
-                    cx={pathPoints[0].x} 
-                    cy={pathPoints[0].y} 
-                    r="8" 
-                    fill="#4ade80" 
-                    className="animate-pulse"
-                    stroke="white" 
-                    strokeWidth="2"
-                  />
-                )}
+                {/* Stroke Order Guides (Numbered steps + Arrows) */}
+                {!isDemonstrating && guides.map((g) => (
+                  <g key={g.id} transform={`translate(${g.x}, ${g.y})`} className="pointer-events-none transition-opacity duration-300 opacity-90">
+                    {/* Number Bubble */}
+                    <circle r="4" fill="#0ea5e9" stroke="white" strokeWidth="1" className="drop-shadow-sm" />
+                    <text 
+                      y="1.5" 
+                      textAnchor="middle" 
+                      dominantBaseline="middle" 
+                      fill="white" 
+                      fontSize="5" 
+                      fontFamily="Varela Round, sans-serif" 
+                      fontWeight="bold"
+                    >
+                      {g.id}
+                    </text>
+                    
+                    {/* Direction Chevron Arrow */}
+                    <g transform={`rotate(${g.angle}) translate(9, 0)`}>
+                      <path d="M 0 -2 L 3 0 L 0 2" fill="none" stroke="#0ea5e9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                  </g>
+                ))}
                 
                 {/* Demonstration Animation Stroke + Moving Cursor */}
                 {isDemonstrating && (
