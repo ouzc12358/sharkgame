@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LETTERS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
+import { GoogleGenAI } from "@google/genai";
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
@@ -366,12 +366,162 @@ const SharkReward: React.FC<{ sharkConfig: SharkConfig }> = ({ sharkConfig }) =>
   );
 };
 
-// 6. Home View
+// 6. Image Generation Modal (Gemini)
+const ImageGenModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  letter: LetterConfig;
+  currentImage: string | null;
+  onSave: (img: string) => void;
+}> = ({ isOpen, onClose, letter, currentImage, onSave }) => {
+  const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+  
+  // Suggest a prompt if empty
+  const defaultPrompt = `Cute cartoon ${letter.word}, 3d render, vivid colors, children's book style`;
+
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const activePrompt = prompt.trim() || defaultPrompt;
+      
+      let response;
+      
+      // If we have an existing custom image, we edit it
+      if (currentImage) {
+         // Image-to-Image / Editing
+         // Extract base64 data
+         const base64Data = currentImage.split(',')[1];
+         response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png', // Assuming png for simplicity
+                    data: base64Data
+                  }
+                },
+                { text: activePrompt }
+              ]
+            }
+         });
+      } else {
+         // Text-to-Image Generation
+         // Since we can't easily send the emoji as an image without rasterizing,
+         // we just generate a new image from the prompt for the first time.
+         response = await ai.models.generateContent({
+           model: 'gemini-2.5-flash-image',
+           contents: {
+             parts: [{ text: activePrompt }]
+           }
+         });
+      }
+
+      // Extract image from response
+      let foundImage = false;
+      if (response && response.candidates && response.candidates[0].content.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            const base64String = part.inlineData.data;
+            const url = `data:image/png;base64,${base64String}`;
+            setGeneratedPreview(url);
+            foundImage = true;
+            break;
+          }
+        }
+      }
+      
+      if (!foundImage) {
+        setError("无法生成图片，请重试 (Could not generate image)");
+      }
+
+    } catch (e: any) {
+      console.error(e);
+      setError("Error: " + (e.message || "Unknown error"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-black text-ocean-900">魔法画笔 (Magic Art)</h2>
+          <button onClick={onClose} className="text-2xl bg-gray-100 rounded-full w-10 h-10 hover:bg-gray-200">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col items-center mb-6">
+             <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden mb-4 shadow-inner">
+                {generatedPreview ? (
+                  <img src={generatedPreview} alt="Generated" className="w-full h-full object-cover" />
+                ) : currentImage ? (
+                  <img src={currentImage} alt="Current" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-8xl">{letter.emoji}</span>
+                )}
+             </div>
+             {isLoading && <div className="text-ocean-500 font-bold animate-pulse">正在施展魔法... (Generating...)</div>}
+             {error && <div className="text-red-500 text-sm font-bold">{error}</div>}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 font-bold mb-2">描述你想画什么 (Prompt):</label>
+            <textarea 
+              className="w-full p-3 border-2 border-ocean-200 rounded-xl focus:border-ocean-500 focus:outline-none"
+              rows={3}
+              placeholder={defaultPrompt}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Example: "Add a hat", "Make it blue", "Oil painting style"
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-4">
+          <button 
+            onClick={handleGenerate}
+            disabled={isLoading}
+            className={`flex-1 py-3 rounded-xl font-black text-white shadow-md transition-transform active:scale-95
+              ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-ocean-500 hover:bg-ocean-600'}
+            `}
+          >
+            {currentImage ? "编辑 (Edit)" : "生成 (Generate)"}
+          </button>
+          
+          {generatedPreview && (
+            <button 
+              onClick={() => { onSave(generatedPreview); onClose(); }}
+              className="flex-1 bg-green-500 text-white py-3 rounded-xl font-black hover:bg-green-600 shadow-md active:scale-95"
+            >
+              保存 (Save)
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// 7. Home View
 const HomeView: React.FC<{ 
   progress: LetterProgress, 
+  customImages: Record<string, string>,
   onSelectLetter: (letter: LetterConfig) => void,
   onOpenSettings: () => void 
-}> = ({ progress, onSelectLetter, onOpenSettings }) => {
+}> = ({ progress, customImages, onSelectLetter, onOpenSettings }) => {
   return (
     <div className="h-full bg-ocean-500 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -388,6 +538,8 @@ const HomeView: React.FC<{
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-12">
           {LETTERS.map((letter) => {
             const isCompleted = progress[letter.char];
+            const customImg = customImages[letter.char];
+            
             return (
               <div
                 key={letter.char}
@@ -404,14 +556,24 @@ const HomeView: React.FC<{
                     e.stopPropagation(); // Prevent opening the letter view
                     speak(letter.char.toLowerCase(), 'en-US');
                   }}
-                  className="absolute top-2 right-2 w-10 h-10 bg-ocean-100 rounded-full flex items-center justify-center text-xl hover:bg-ocean-200 active:scale-90 transition-transform"
+                  className="absolute top-2 right-2 w-10 h-10 bg-ocean-100 rounded-full flex items-center justify-center text-xl hover:bg-ocean-200 active:scale-90 transition-transform z-10"
                 >
                   🔊
                 </button>
 
-                <span className="text-6xl md:text-7xl font-black mb-2 select-none">{letter.char}</span>
+                <span className="text-6xl md:text-7xl font-black mb-2 select-none relative z-0">
+                  {letter.char}
+                </span>
+                
+                {/* Small indicator if custom image exists */}
+                {customImg && (
+                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full overflow-hidden border border-gray-200">
+                    <img src={customImg} alt="custom" className="w-full h-full object-cover" />
+                  </div>
+                )}
+
                 {isCompleted && (
-                  <div className="absolute bottom-2 right-2 text-3xl animate-bounce-gentle">
+                  <div className="absolute bottom-2 right-2 text-3xl animate-bounce-gentle z-10">
                     🦈
                   </div>
                 )}
@@ -424,19 +586,22 @@ const HomeView: React.FC<{
   );
 };
 
-// 7. Letter Tracing View
+// 8. Letter Tracing View
 const LetterView: React.FC<{ 
   letter: LetterConfig, 
   onBack: () => void, 
   onComplete: () => void,
-  sharkConfig: SharkConfig
-}> = ({ letter, onBack, onComplete, sharkConfig }) => {
+  sharkConfig: SharkConfig,
+  customImage: string | null,
+  onUpdateImage: (img: string) => void
+}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDemonstrating, setIsDemonstrating] = useState(true);
   const [averageError, setAverageError] = useState(0);
   const [guideFlash, setGuideFlash] = useState(false);
   const [showLowercase, setShowLowercase] = useState(false);
+  const [showMagicModal, setShowMagicModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
@@ -599,8 +764,22 @@ const LetterView: React.FC<{
               <span className="text-8xl md:text-9xl font-black text-ocean-900 select-none">
                 {showLowercase ? `${letter.char} ${letter.char.toLowerCase()}` : letter.char}
               </span>
-              <div className="flex flex-col items-center">
-                <span className="text-6xl select-none animate-bounce-gentle">{letter.emoji}</span>
+              <div className="flex flex-col items-center relative group">
+                <div className="relative">
+                  {customImage ? (
+                    <img src={customImage} alt={letter.word} className="w-24 h-24 object-contain animate-bounce-gentle rounded-lg" />
+                  ) : (
+                    <span className="text-6xl select-none animate-bounce-gentle block">{letter.emoji}</span>
+                  )}
+                  {/* Magic Wand Button */}
+                  <button 
+                    onClick={() => setShowMagicModal(true)}
+                    className="absolute -bottom-2 -right-2 bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 hover:bg-purple-600"
+                    title="Customize Image"
+                  >
+                    ✨
+                  </button>
+                </div>
                 <span className="text-2xl text-gray-500 font-bold mt-2">{letter.word}</span>
               </div>
             </div>
@@ -725,11 +904,19 @@ const LetterView: React.FC<{
       <div className="flex-none p-4 flex justify-center pointer-events-none">
         <FriendlyShark className="w-24 h-24" config={sharkConfig} />
       </div>
+
+      <ImageGenModal 
+        isOpen={showMagicModal} 
+        onClose={() => setShowMagicModal(false)}
+        letter={letter}
+        currentImage={customImage}
+        onSave={(img) => onUpdateImage(img)}
+      />
     </div>
   );
 };
 
-// 8. Main App
+// 9. Main App
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.INTRO);
   const [currentLetter, setCurrentLetter] = useState<LetterConfig | null>(null);
@@ -737,6 +924,7 @@ export default function App() {
   const [showReward, setShowReward] = useState(false);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>({ color: 'blue', accessory: 'none' });
   const [showSettings, setShowSettings] = useState(false);
+  const [customImages, setCustomImages] = useState<Record<string, string>>({});
 
   const handleStart = () => setView(AppView.HOME);
 
@@ -755,6 +943,12 @@ export default function App() {
         setCurrentLetter(null);
       }, 4000);
     }
+  };
+
+  const handleUpdateImage = (img: string) => {
+     if (currentLetter) {
+       setCustomImages(prev => ({ ...prev, [currentLetter.char]: img }));
+     }
   };
 
   return (
@@ -777,6 +971,7 @@ export default function App() {
       {view === AppView.HOME && (
         <HomeView 
           progress={completedLetters} 
+          customImages={customImages}
           onSelectLetter={handleSelectLetter} 
           onOpenSettings={() => setShowSettings(true)}
         />
@@ -788,6 +983,8 @@ export default function App() {
           onBack={() => setView(AppView.HOME)} 
           onComplete={handleComplete}
           sharkConfig={sharkConfig}
+          customImage={customImages[currentLetter.char]}
+          onUpdateImage={handleUpdateImage}
         />
       )}
 
