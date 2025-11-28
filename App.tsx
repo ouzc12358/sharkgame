@@ -17,6 +17,51 @@ const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.5) => {
   }
 };
 
+// Simple synthesizer for UI sound effects
+const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+const playSound = (type: 'start' | 'end' | 'error') => {
+  // Ensure context is running (browsers suspend it until user interaction)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const now = audioCtx.currentTime;
+
+  if (type === 'start') {
+    // Soft blip
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } else if (type === 'end') {
+    // Crisp pop
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } else if (type === 'error') {
+    // Gentle buzz/thud
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+};
+
 // --- Math Helpers ---
 const dist = (p1: Point, p2: Point) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
 
@@ -672,6 +717,7 @@ const LetterView: React.FC<{
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (isDemonstrating) return;
     isDragging.current = true;
+    playSound('start'); // Play start sound
     const p = getCanvasPoint(e);
     setCurrentStroke([p]);
   };
@@ -715,11 +761,14 @@ const LetterView: React.FC<{
     // ANTI-SCRIBBLE CHECK:
     // If drawing is too far from the line on average, reject it immediately.
     if (avgError > 8) { // Threshold for "messy"
+       playSound('error'); // Play error sound
        speak("请沿着线写", 'zh-CN');
        setGuideFlash(true); // Trigger visual flash
        setTimeout(() => setGuideFlash(false), 800);
        setStrokes([]); // Reset strokes
        return;
+    } else {
+       playSound('end'); // Play completion sound for a valid stroke
     }
 
     // Check 2: Coverage (Completeness)
