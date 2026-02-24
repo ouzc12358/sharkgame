@@ -30,5 +30,15 @@ export const LETTERS: LetterConfig[] = [
   { char: 'W', word: 'Whale', emoji: '🐋', viewBox: "0 0 100 100", svgPath: "M 15 15 L 30 85 L 50 40 L 70 85 L 85 15" },
   { char: 'X', word: 'Xylophone', emoji: '🎼', viewBox: "0 0 100 100", svgPath: "M 20 15 L 80 85 M 80 15 L 20 85" },
   { char: 'Y', word: 'Yacht', emoji: '⛵', viewBox: "0 0 100 100", svgPath: "M 20 15 L 50 55 L 50 85 M 80 15 L 50 55" },
-  { char: 'Z', word: 'Zebra', emoji: '🦓', viewBox: "0 0 100 100", svgPath: "M 20 15 L 80 15 L 20 85 L 80 85" }
+  { char: 'Z', word: 'Zebra', emoji: '🦓', viewBox: "0 0 100 100", svgPath: "M 20 15 L 80 15 L 20 85 L 80 85" },
+  { char: '0', word: 'Zero', emoji: '🍩', viewBox: "0 0 100 100", svgPath: "M 50 15 C 20 15 20 85 50 85 C 80 85 80 15 50 15" },
+  { char: '1', word: 'One', emoji: '☝️', viewBox: "0 0 100 100", svgPath: "M 40 30 L 50 15 L 50 85 M 35 85 L 65 85" },
+  { char: '2', word: 'Two', emoji: '🦆', viewBox: "0 0 100 100", svgPath: "M 25 30 C 35 10 75 10 75 35 C 75 50 60 60 25 85 L 75 85" },
+  { char: '3', word: 'Three', emoji: '🌳', viewBox: "0 0 100 100", svgPath: "M 25 20 C 75 15 75 45 40 50 C 75 50 75 85 25 80" },
+  { char: '4', word: 'Four', emoji: '🍀', viewBox: "0 0 100 100", svgPath: "M 70 15 L 30 60 L 80 60 M 70 15 L 70 85" },
+  { char: '5', word: 'Five', emoji: '✋', viewBox: "0 0 100 100", svgPath: "M 75 15 L 30 15 L 30 50 C 30 50 35 45 55 45 C 80 45 80 85 35 85" },
+  { char: '6', word: 'Six', emoji: '🐌', viewBox: "0 0 100 100", svgPath: "M 70 25 C 55 10 30 20 30 50 C 30 85 75 90 75 60 C 75 35 40 35 30 55" },
+  { char: '7', word: 'Seven', emoji: '🌈', viewBox: "0 0 100 100", svgPath: "M 25 15 L 80 15 L 45 85" },
+  { char: '8', word: 'Eight', emoji: '🐙', viewBox: "0 0 100 100", svgPath: "M 50 15 C 25 15 25 45 50 45 C 75 45 75 15 50 15 M 50 45 C 20 45 20 85 50 85 C 80 85 80 45 50 45" },
+  { char: '9', word: 'Nine', emoji: '🎈', viewBox: "0 0 100 100", svgPath: "M 65 45 C 65 20 30 20 30 45 C 30 70 65 70 65 45 M 65 45 L 65 85" }
 ];

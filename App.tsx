@@ -208,7 +208,7 @@ const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> =
         </div>
         
         <h1 className="text-5xl md:text-7xl font-black text-white drop-shadow-lg mb-4 tracking-wide">
-          Sharky Letters
+          Sharky Letters & Numbers
         </h1>
         <p className="text-ocean-100 text-xl md:text-3xl font-bold mb-12 opacity-90">
           Ready to learn?
@@ -584,7 +584,7 @@ const HomeView: React.FC<{
     <div className="h-full bg-ocean-500 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
-          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">字母表</h1>
+          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">字母和数字</h1>
           <button 
             onClick={onOpenSettings}
             className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
@@ -660,6 +660,7 @@ const LetterView: React.FC<{
   const [guideFlash, setGuideFlash] = useState(false);
   const [showLowercase, setShowLowercase] = useState(false);
   const [showMagicModal, setShowMagicModal] = useState(false);
+  const supportsCaseToggle = /^[A-Z]$/.test(letter.char);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
@@ -802,12 +803,14 @@ const LetterView: React.FC<{
           🔙
         </button>
         <div className="flex gap-4">
-          <button 
-             onClick={() => setShowLowercase(!showLowercase)} 
-             className={`bg-white/20 px-4 py-2 rounded-xl text-white font-bold text-xl active:scale-95 border-2 ${showLowercase ? 'border-white bg-white/30' : 'border-transparent'}`}
-          >
-            Aa
-          </button>
+          {supportsCaseToggle && (
+            <button 
+               onClick={() => setShowLowercase(!showLowercase)} 
+               className={`bg-white/20 px-4 py-2 rounded-xl text-white font-bold text-xl active:scale-95 border-2 ${showLowercase ? 'border-white bg-white/30' : 'border-transparent'}`}
+            >
+              Aa
+            </button>
+          )}
           <button onClick={handleReplay} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
             ↺
           </button>
@@ -824,7 +827,7 @@ const LetterView: React.FC<{
 
             <div className="flex items-center gap-8 mb-4">
               <span className="text-8xl md:text-9xl font-black text-ocean-900 select-none">
-                {showLowercase ? `${letter.char} ${letter.char.toLowerCase()}` : letter.char}
+                {supportsCaseToggle && showLowercase ? `${letter.char} ${letter.char.toLowerCase()}` : letter.char}
               </span>
               <div className="flex flex-col items-center relative group">
                 <div className="relative">
