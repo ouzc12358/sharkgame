@@ -13,6 +13,18 @@ import {
   MissionStoreState,
   saveMissionStore,
 } from './src/logic/missionStore';
+import {
+  addAttempt,
+  computeTraceMetrics,
+  getDisplayLevels,
+  getLatestAttempt,
+  loadMetricsStore,
+  pickPraiseMessage,
+  saveMetricsStore,
+  TraceAttempt,
+  TraceMetricLevels,
+  TraceMetricsStore,
+} from './src/logic/metrics';
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
@@ -41,6 +53,8 @@ const NUMBER_ZH_MAP: Record<string, string> = {
 };
 
 const isNumberItem = (char: string) => /^[0-9]$/.test(char);
+const getPracticeItemKey = (char: string) => (isNumberItem(char) ? `number:${char}` : `letter:${char}`);
+const DEFAULT_METRIC_LEVELS: TraceMetricLevels = { follow: 2, smoothness: 2, continuity: 2 };
 
 const speakItemPrimary = (item: LetterConfig) => {
   if (isNumberItem(item.char)) {
@@ -54,7 +68,7 @@ const speakItemPrimary = (item: LetterConfig) => {
 // Simple synthesizer for UI sound effects
 const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
-const playSound = (type: 'start' | 'end' | 'error') => {
+const playSound = (type: 'start' | 'end' | 'guide') => {
   // Ensure context is running (browsers suspend it until user interaction)
   if (audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
@@ -84,15 +98,15 @@ const playSound = (type: 'start' | 'end' | 'error') => {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
     osc.start(now);
     osc.stop(now + 0.1);
-  } else if (type === 'error') {
-    // Gentle buzz/thud
+  } else if (type === 'guide') {
+    // Gentle guide cue
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.linearRampToValueAtTime(100, now + 0.3);
-    gain.gain.setValueAtTime(0.05, now);
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.linearRampToValueAtTime(180, now + 0.22);
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
     osc.start(now);
-    osc.stop(now + 0.3);
+    osc.stop(now + 0.22);
   }
 };
 
@@ -709,6 +723,35 @@ const CharacterGridView: React.FC<{
   );
 };
 
+const ProgressIcons: React.FC<{ levels: TraceMetricLevels }> = ({ levels }) => {
+  const rows: Array<{ icon: string; label: string; level: number }> = [
+    { icon: '🧲', label: '贴近', level: levels.follow },
+    { icon: '🌊', label: '顺滑', level: levels.smoothness },
+    { icon: '🔗', label: '连贯', level: levels.continuity },
+  ];
+
+  return (
+    <div className="w-full max-w-md bg-ocean-50 rounded-2xl p-3 mb-4">
+      <div className="grid grid-cols-3 gap-2">
+        {rows.map((row) => (
+          <div key={row.label} className="text-center">
+            <div className="text-xl">{row.icon}</div>
+            <div className="text-xs font-black text-ocean-900 mb-1">{row.label}</div>
+            <div className="flex justify-center gap-1">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <span
+                  key={`${row.label}-${index}`}
+                  className={`w-1.5 h-1.5 rounded-full ${index < row.level ? 'bg-ocean-500' : 'bg-gray-300'}`}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // 9. Letter Tracing View
 const LetterView: React.FC<{ 
   letter: LetterConfig, 
@@ -716,13 +759,15 @@ const LetterView: React.FC<{
   onComplete: () => void,
   sharkConfig: SharkConfig,
   customImage: string | null,
-  onUpdateImage: (img: string) => void
-}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage }) => {
+  onUpdateImage: (img: string) => void,
+  progressLevels: TraceMetricLevels,
+  onAttemptAnalyzed: (attempt: TraceAttempt) => void
+}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage, progressLevels, onAttemptAnalyzed }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDemonstrating, setIsDemonstrating] = useState(true);
-  const [averageError, setAverageError] = useState(0);
   const [guideFlash, setGuideFlash] = useState(false);
+  const [helperMessage, setHelperMessage] = useState('请沿着线写');
   const [showLowercase, setShowLowercase] = useState(false);
   const [showMagicModal, setShowMagicModal] = useState(false);
   const supportsCaseToggle = /^[A-Z]$/.test(letter.char);
@@ -737,6 +782,8 @@ const LetterView: React.FC<{
   // Initial demonstration and audio
   useEffect(() => {
     setStrokes([]);
+    setCurrentStroke([]);
+    setHelperMessage('请沿着线写');
     setIsDemonstrating(true);
     
     // Audio Sequence: Letter -> Wait -> Word
@@ -757,7 +804,7 @@ const LetterView: React.FC<{
   const handleReplay = () => {
     setStrokes([]);
     setCurrentStroke([]);
-    setAverageError(0);
+    setHelperMessage('再试一次，慢慢来');
     setIsDemonstrating(true);
     speakItemPrimary(letter);
     
@@ -776,7 +823,8 @@ const LetterView: React.FC<{
     // Map to 0-100 coordinate space
     return {
       x: ((clientX - rect.left) / rect.width) * 100,
-      y: ((clientY - rect.top) / rect.height) * 100
+      y: ((clientY - rect.top) / rect.height) * 100,
+      t: Date.now(),
     };
   };
 
@@ -808,36 +856,14 @@ const LetterView: React.FC<{
     const allUserPoints = currentStrokes.flat();
     if (allUserPoints.length < 10) return;
 
-    let totalDist = 0;
-    let maxDist = 0;
-
-    // Check 1: Average distance from guide path (Precision)
-    for (const p of allUserPoints) {
-      let minDist = Infinity;
-      for (const targetP of pathPoints) {
-        const d = dist(p, targetP);
-        if (d < minDist) minDist = d;
-      }
-      totalDist += minDist;
-      if (minDist > maxDist) maxDist = minDist;
-    }
-    const avgError = totalDist / allUserPoints.length;
-    setAverageError(avgError);
-
-    // ANTI-SCRIBBLE CHECK:
-    // If drawing is too far from the line on average, reject it immediately.
-    if (avgError > 8) { // Threshold for "messy"
-       playSound('error'); // Play error sound
-       speak("请沿着线写", 'zh-CN');
-       setGuideFlash(true); // Trigger visual flash
-       setTimeout(() => setGuideFlash(false), 800);
-       setStrokes([]); // Reset strokes
-       return;
-    } else {
-       playSound('end'); // Play completion sound for a valid stroke
-    }
-
-    // Check 2: Coverage (Completeness)
+    const metrics = computeTraceMetrics(currentStrokes, pathPoints);
+    const attempt: TraceAttempt = {
+      at: Date.now(),
+      scores: metrics.scores,
+      levels: metrics.levels,
+    };
+    onAttemptAnalyzed(attempt);
+    // Coverage check
     let coveredCount = 0;
     const coverageThreshold = 7; 
     
@@ -853,10 +879,24 @@ const LetterView: React.FC<{
     }
 
     const coverage = coveredCount / pathPoints.length;
+    const isSuccess = coverage > 0.88 && metrics.scores.follow > 0.35;
 
-    // Success Condition: High coverage + Low error
-    if (coverage > 0.92 && avgError < 6) {
+    if (isSuccess) {
+      playSound('end');
+      setHelperMessage('太棒啦，完成啦');
       setTimeout(onComplete, 500);
+      return;
+    }
+
+    playSound('guide');
+    setGuideFlash(true);
+    setTimeout(() => setGuideFlash(false), 600);
+    if (coverage > 0.72) {
+      setHelperMessage('快完成啦，再把浅灰线连接起来');
+      speak('快完成啦，再试一笔', 'zh-CN', 0.62);
+    } else {
+      setHelperMessage('慢慢来，沿着浅灰线走');
+      speak('慢慢来，沿着浅灰线走', 'zh-CN', 0.6);
     }
   };
 
@@ -913,6 +953,8 @@ const LetterView: React.FC<{
                 <span className="text-2xl text-gray-500 font-bold mt-2">{letter.word}</span>
               </div>
             </div>
+
+            <ProgressIcons levels={progressLevels} />
 
             {/* Tracing Area */}
             <div className={`relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] shrink-0 touch-none ${guideFlash ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
@@ -1024,8 +1066,11 @@ const LetterView: React.FC<{
             </div>
             
             <p className="mt-6 text-gray-400 font-bold text-lg">
-              {isDemonstrating ? "看这里！" : "请沿着线写"}
+              {isDemonstrating ? '看这里！' : helperMessage}
             </p>
+            {!isDemonstrating && (
+              <p className="text-xs text-gray-400 mt-1">小鲨鱼在陪你慢慢练习</p>
+            )}
           </div>
         </div>
       </div>
@@ -1059,6 +1104,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
+  const [metricsStore, setMetricsStore] = useState<TraceMetricsStore>(() => loadMetricsStore());
   const traceStartRef = useRef<number>(Date.now());
 
   const todayKey = getDateKey();
@@ -1074,6 +1120,10 @@ export default function App() {
   const lettersDone = LETTER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const numbersDone = NUMBER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const isCoralUnlocked = lettersDone === LETTER_ITEMS.length || numbersDone === NUMBER_ITEMS.length;
+  const currentItemKey = currentLetter ? getPracticeItemKey(currentLetter.char) : null;
+  const currentProgressLevels = currentItemKey
+    ? getDisplayLevels(metricsStore, currentItemKey)
+    : DEFAULT_METRIC_LEVELS;
 
   const getCategoryView = (category: LearningCategory) =>
     category === 'letters' ? AppView.LETTER_LIST : AppView.NUMBER_LIST;
@@ -1126,6 +1176,17 @@ export default function App() {
      }
   };
 
+  const handleAttemptAnalyzed = (attempt: TraceAttempt) => {
+    if (!currentLetter) return;
+    const itemKey = getPracticeItemKey(currentLetter.char);
+    setMetricsStore((prev) => {
+      const previous = getLatestAttempt(prev, itemKey);
+      const message = pickPraiseMessage(previous, attempt);
+      speak(message, 'zh-CN', 0.62);
+      return addAttempt(prev, itemKey, attempt);
+    });
+  };
+
   useEffect(() => {
     setMissionStore((prev) => ensureMissionDay(prev, todayKey, todayMission));
   }, [todayKey, todayMission]);
@@ -1133,6 +1194,10 @@ export default function App() {
   useEffect(() => {
     saveMissionStore(missionStore);
   }, [missionStore]);
+
+  useEffect(() => {
+    saveMetricsStore(metricsStore);
+  }, [metricsStore]);
 
   useEffect(() => {
     if (!todayDay || todayDay.ritualDone) return;
@@ -1237,6 +1302,8 @@ export default function App() {
           sharkConfig={sharkConfig}
           customImage={customImages[currentLetter.char]}
           onUpdateImage={handleUpdateImage}
+          progressLevels={currentProgressLevels}
+          onAttemptAnalyzed={handleAttemptAnalyzed}
         />
       )}
 
