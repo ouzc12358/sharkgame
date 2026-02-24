@@ -2,6 +2,17 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LETTER_ITEMS, NUMBER_ITEMS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
+import MissionFlow from './src/components/MissionFlow';
+import MissionRitual from './src/components/MissionRitual';
+import { buildDailyMission, getDateKey, MissionItem, missionItemKey } from './src/logic/missions';
+import {
+  addPracticedMissionItem,
+  completeMissionRitual,
+  ensureMissionDay,
+  loadMissionStore,
+  MissionStoreState,
+  saveMissionStore,
+} from './src/logic/missionStore';
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
@@ -623,60 +634,7 @@ const ImageGenModal: React.FC<{
 
 
 type LearningCategory = 'letters' | 'numbers';
-
-// 7. Category Home View
-const CategoryHomeView: React.FC<{
-  progress: LetterProgress;
-  onSelectCategory: (category: LearningCategory) => void;
-  onOpenSettings: () => void;
-}> = ({ progress, onSelectCategory, onOpenSettings }) => {
-  const lettersDone = LETTER_ITEMS.filter((item) => progress[item.char]).length;
-  const numbersDone = NUMBER_ITEMS.filter((item) => progress[item.char]).length;
-
-  return (
-    <div className="h-full bg-ocean-500 overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 md:p-8">
-        <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
-          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">选择学习内容</h1>
-          <button
-            onClick={onOpenSettings}
-            className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
-          >
-            <span className="text-3xl">⚙️</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-          <button
-            onClick={() => onSelectCategory('letters')}
-            className="bg-white rounded-3xl p-8 text-left shadow-[0_8px_0_rgba(0,0,0,0.12)] active:translate-y-1 active:shadow-none transition-all"
-          >
-            <div className="text-6xl mb-3">🔤</div>
-            <div className="text-4xl font-black text-ocean-900 mb-2">字母学习</div>
-            <div className="text-xl font-bold text-gray-500">A - Z</div>
-            <div className="mt-4 text-lg font-bold text-ocean-700">
-              完成 {lettersDone}/{LETTER_ITEMS.length}
-            </div>
-          </button>
-
-          <button
-            onClick={() => onSelectCategory('numbers')}
-            className="bg-white rounded-3xl p-8 text-left shadow-[0_8px_0_rgba(0,0,0,0.12)] active:translate-y-1 active:shadow-none transition-all"
-          >
-            <div className="text-6xl mb-3">🔢</div>
-            <div className="text-4xl font-black text-ocean-900 mb-2">数字学习</div>
-            <div className="text-xl font-bold text-gray-500">0 - 9</div>
-            <div className="mt-4 text-lg font-bold text-ocean-700">
-              完成 {numbersDone}/{NUMBER_ITEMS.length}
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// 8. Character Grid View
+// 7. Character Grid View
 const CharacterGridView: React.FC<{
   title: string;
   items: LetterConfig[];
@@ -1095,9 +1053,24 @@ export default function App() {
   const [currentLetter, setCurrentLetter] = useState<LetterConfig | null>(null);
   const [completedLetters, setCompletedLetters] = useState<LetterProgress>({});
   const [showReward, setShowReward] = useState(false);
+  const [showMissionRitual, setShowMissionRitual] = useState(false);
+  const [returnViewAfterTrace, setReturnViewAfterTrace] = useState<AppView>(AppView.HOME);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>({ color: 'blue', accessory: 'none' });
   const [showSettings, setShowSettings] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
+  const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
+  const traceStartRef = useRef<number>(Date.now());
+
+  const todayKey = getDateKey();
+  const todayMission = useMemo(
+    () => buildDailyMission(todayKey, LETTER_ITEMS.map((item) => item.char), NUMBER_ITEMS.map((item) => item.char)),
+    [todayKey]
+  );
+  const todayDay = missionStore.days[todayKey];
+  const todayPracticedKeys = todayDay?.practicedItemKeys || [];
+  const missionDoneCount = todayMission.items.filter((item) =>
+    todayPracticedKeys.includes(missionItemKey(item))
+  ).length;
   const lettersDone = LETTER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const numbersDone = NUMBER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const isCoralUnlocked = lettersDone === LETTER_ITEMS.length || numbersDone === NUMBER_ITEMS.length;
@@ -1115,16 +1088,33 @@ export default function App() {
   const handleSelectLetter = (letter: LetterConfig, category: LearningCategory) => {
     setActiveCategory(category);
     setCurrentLetter(letter);
+    setReturnViewAfterTrace(getCategoryView(category));
+    traceStartRef.current = Date.now();
     setView(AppView.LETTER);
   };
 
   const handleComplete = () => {
     if (currentLetter) {
-      setCompletedLetters(prev => ({ ...prev, [currentLetter.char]: true }));
+      const now = Date.now();
+      const minutesDelta = Math.max(1 / 6, (now - traceStartRef.current) / 60000);
+
+      setCompletedLetters((prev) => ({ ...prev, [currentLetter.char]: true }));
+
+      const missionItem = todayMission.items.find(
+        (item) =>
+          item.char === currentLetter.char &&
+          ((item.type === 'letter' && activeCategory === 'letters') ||
+            (item.type === 'number' && activeCategory === 'numbers'))
+      );
+      if (missionItem) {
+        const itemKey = missionItemKey(missionItem);
+        setMissionStore((prev) => addPracticedMissionItem(prev, todayKey, itemKey, minutesDelta));
+      }
+
       setShowReward(true);
       setTimeout(() => {
         setShowReward(false);
-        setView(getCategoryView(activeCategory));
+        setView(returnViewAfterTrace);
         setCurrentLetter(null);
       }, 4000);
     }
@@ -1134,6 +1124,38 @@ export default function App() {
      if (currentLetter) {
        setCustomImages(prev => ({ ...prev, [currentLetter.char]: img }));
      }
+  };
+
+  useEffect(() => {
+    setMissionStore((prev) => ensureMissionDay(prev, todayKey, todayMission));
+  }, [todayKey, todayMission]);
+
+  useEffect(() => {
+    saveMissionStore(missionStore);
+  }, [missionStore]);
+
+  useEffect(() => {
+    if (!todayDay || todayDay.ritualDone) return;
+    if (missionDoneCount >= todayMission.items.length) {
+      setShowMissionRitual(true);
+    }
+  }, [missionDoneCount, todayDay, todayMission.items.length]);
+
+  const handleStartMissionItem = (item: MissionItem) => {
+    const sourceItems = item.type === 'letter' ? LETTER_ITEMS : NUMBER_ITEMS;
+    const config = sourceItems.find((entry) => entry.char === item.char);
+    if (!config) return;
+    setActiveCategory(item.type === 'letter' ? 'letters' : 'numbers');
+    setCurrentLetter(config);
+    setReturnViewAfterTrace(AppView.HOME);
+    traceStartRef.current = Date.now();
+    setView(AppView.LETTER);
+  };
+
+  const handleHighFiveRitual = () => {
+    setMissionStore((prev) => completeMissionRitual(prev, todayKey));
+    setShowMissionRitual(false);
+    speak('击掌成功，明天继续冒险！', 'zh-CN');
   };
 
   useEffect(() => {
@@ -1169,9 +1191,16 @@ export default function App() {
       )}
 
       {view === AppView.HOME && (
-        <CategoryHomeView
-          progress={completedLetters} 
-          onSelectCategory={handleSelectCategory}
+        <MissionFlow
+          mission={todayMission}
+          practicedItemKeys={todayPracticedKeys}
+          isCompletedToday={Boolean(todayDay?.completed)}
+          streak={missionStore.streak}
+          diaryStickers={missionStore.history.map((entry) => entry.sticker).slice(0, 12)}
+          onNarrateStory={() => speak(todayMission.story, 'zh-CN')}
+          onStartMissionItem={handleStartMissionItem}
+          onOpenLetters={() => handleSelectCategory('letters')}
+          onOpenNumbers={() => handleSelectCategory('numbers')}
           onOpenSettings={() => setShowSettings(true)}
         />
       )}
@@ -1203,7 +1232,7 @@ export default function App() {
       {view === AppView.LETTER && currentLetter && (
         <LetterView 
           letter={currentLetter} 
-          onBack={() => setView(getCategoryView(activeCategory))}
+          onBack={() => setView(returnViewAfterTrace)}
           onComplete={handleComplete}
           sharkConfig={sharkConfig}
           customImage={customImages[currentLetter.char]}
@@ -1222,6 +1251,7 @@ export default function App() {
         onChange={setSharkConfig}
         isCoralUnlocked={isCoralUnlocked}
       />
+      <MissionRitual isOpen={showMissionRitual} onHighFive={handleHighFiveRitual} />
     </div>
   );
 }
