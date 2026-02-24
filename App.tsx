@@ -1,7 +1,16 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from './constants';
-import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
+import {
+  LetterConfig,
+  Point,
+  AppView,
+  LetterProgress,
+  SharkConfig,
+  SharkColor,
+  SharkAccessory,
+  DifficultyMode,
+} from './types';
 import MissionFlow from './src/components/MissionFlow';
 import MissionRitual from './src/components/MissionRitual';
 import { buildDailyMission, getDateKey, MissionItem, missionItemKey } from './src/logic/missions';
@@ -220,6 +229,7 @@ interface ChildStateSnapshot {
   completedLetters: LetterProgress;
   customImages: Record<string, string>;
   sharkConfig: SharkConfig;
+  difficultyMode: DifficultyMode;
 }
 
 const loadChildState = (): ChildStateSnapshot => {
@@ -227,15 +237,22 @@ const loadChildState = (): ChildStateSnapshot => {
     completedLetters: {},
     customImages: {},
     sharkConfig: { color: 'blue', accessory: 'none' },
+    difficultyMode: 'guide',
   };
   try {
     const raw = localStorage.getItem(CHILD_STATE_STORAGE_KEY);
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<ChildStateSnapshot>;
+    const parsedMode = parsed.difficultyMode;
+    const safeMode: DifficultyMode =
+      parsedMode === 'guide' || parsedMode === 'practice' || parsedMode === 'challenge'
+        ? parsedMode
+        : 'guide';
     return {
       completedLetters: parsed.completedLetters || {},
       customImages: parsed.customImages || {},
       sharkConfig: parsed.sharkConfig || defaults.sharkConfig,
+      difficultyMode: safeMode,
     };
   } catch {
     return defaults;
@@ -245,6 +262,21 @@ const loadChildState = (): ChildStateSnapshot => {
 const saveChildState = (snapshot: ChildStateSnapshot) => {
   localStorage.setItem(CHILD_STATE_STORAGE_KEY, JSON.stringify(snapshot));
 };
+
+const DIFFICULTY_CONFIG: Record<
+  DifficultyMode,
+  { snapDistance: number; returnDistance: number; successCoverage: number; successFollow: number }
+> = {
+  guide: { snapDistance: 12, returnDistance: 18, successCoverage: 0.82, successFollow: 0.24 },
+  practice: { snapDistance: 8, returnDistance: 14, successCoverage: 0.86, successFollow: 0.31 },
+  challenge: { snapDistance: 4, returnDistance: 10, successCoverage: 0.9, successFollow: 0.38 },
+};
+
+const DIFFICULTY_OPTIONS: Array<{ id: DifficultyMode; label: string; hint: string }> = [
+  { id: 'guide', label: '引导', hint: '强吸附，逐段提示' },
+  { id: 'practice', label: '练习', hint: '中等吸附，自主描线' },
+  { id: 'challenge', label: '挑战', hint: '轻吸附，自由书写' },
+];
 
 // --- Components ---
 
@@ -418,8 +450,10 @@ const SettingsModal: React.FC<{
   onClose: () => void, 
   config: SharkConfig, 
   onChange: (c: SharkConfig) => void,
-  isCoralUnlocked: boolean
-}> = ({ isOpen, onClose, config, onChange, isCoralUnlocked }) => {
+  isCoralUnlocked: boolean,
+  difficultyMode: DifficultyMode,
+  onChangeDifficulty: (mode: DifficultyMode) => void
+}> = ({ isOpen, onClose, config, onChange, isCoralUnlocked, difficultyMode, onChangeDifficulty }) => {
   if (!isOpen) return null;
 
   return (
@@ -488,6 +522,26 @@ const SettingsModal: React.FC<{
             {!isCoralUnlocked && (
               <p className="text-xs text-gray-500 mt-2">红袋/绿袋/蓝袋/浅珊瑚袋需完成全部字母或全部数字后解锁</p>
             )}
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold text-gray-700 mb-3">难度 (Difficulty)</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {DIFFICULTY_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => onChangeDifficulty(option.id)}
+                  className={`rounded-xl border-2 p-3 text-left transition-all active:scale-95 ${
+                    difficultyMode === option.id
+                      ? 'border-ocean-500 bg-ocean-50'
+                      : 'border-gray-200 hover:border-ocean-300'
+                  }`}
+                >
+                  <p className="text-sm font-black text-ocean-900">{option.label}</p>
+                  <p className="text-[11px] text-gray-500 font-bold mt-1">{option.hint}</p>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         
@@ -804,8 +858,9 @@ const LetterView: React.FC<{
   customImage: string | null,
   onUpdateImage: (img: string) => void,
   progressLevels: TraceMetricLevels,
-  onAttemptAnalyzed: (attempt: TraceAttempt) => void
-}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage, progressLevels, onAttemptAnalyzed }) => {
+  onAttemptAnalyzed: (attempt: TraceAttempt) => void,
+  difficultyMode: DifficultyMode
+}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage, progressLevels, onAttemptAnalyzed, difficultyMode }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDemonstrating, setIsDemonstrating] = useState(true);
@@ -820,13 +875,18 @@ const LetterView: React.FC<{
   const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
   // Calculate guides (stroke order indicators)
   const guides = useMemo(() => getStrokeGuides(letter.svgPath), [letter]);
+  const difficultyConfig = DIFFICULTY_CONFIG[difficultyMode];
   
   const isDragging = useRef(false);
+  const [nextGuideIndex, setNextGuideIndex] = useState(0);
+  const [returnBubble, setReturnBubble] = useState<Point | null>(null);
 
   // Initial demonstration and audio
   useEffect(() => {
     setStrokes([]);
     setCurrentStroke([]);
+    setNextGuideIndex(0);
+    setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '请沿着线写');
     setIsDemonstrating(true);
     
@@ -852,6 +912,8 @@ const LetterView: React.FC<{
   const handleReplay = () => {
     setStrokes([]);
     setCurrentStroke([]);
+    setNextGuideIndex(0);
+    setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '再试一次，慢慢来');
     setIsDemonstrating(true);
     speakItemPrimary(letter);
@@ -876,19 +938,60 @@ const LetterView: React.FC<{
     };
   };
 
+  const findNearestPathPoint = (point: Point) => {
+    let minDistance = Number.POSITIVE_INFINITY;
+    let nearestPoint = pathPoints[0];
+    let nearestIndex = 0;
+    for (let i = 0; i < pathPoints.length; i++) {
+      const candidate = pathPoints[i];
+      const d = dist(point, candidate);
+      if (d < minDistance) {
+        minDistance = d;
+        nearestPoint = candidate;
+        nearestIndex = i;
+      }
+    }
+    return { point: nearestPoint, index: nearestIndex, distance: minDistance };
+  };
+
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (isDemonstrating) return;
     isDragging.current = true;
     playSound('start'); // Play start sound
-    const p = getCanvasPoint(e);
-    setCurrentStroke([p]);
+    const rawPoint = getCanvasPoint(e);
+    const nearest = findNearestPathPoint(rawPoint);
+    if (nearest.distance <= difficultyConfig.snapDistance) {
+      setNextGuideIndex((prev) => Math.max(prev, nearest.index));
+      setCurrentStroke([{ ...nearest.point, t: rawPoint.t }]);
+      setReturnBubble(null);
+      return;
+    }
+    if (nearest.distance > difficultyConfig.returnDistance) {
+      setReturnBubble(nearest.point);
+      setHelperMessage('跟着蓝泡泡回到线条');
+    }
+    setCurrentStroke([rawPoint]);
   };
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging.current || isDemonstrating) return;
     e.preventDefault(); // Prevent scrolling while drawing
-    const p = getCanvasPoint(e);
-    setCurrentStroke(prev => [...prev, p]);
+    const rawPoint = getCanvasPoint(e);
+    const nearest = findNearestPathPoint(rawPoint);
+    let drawPoint = rawPoint;
+
+    if (nearest.distance <= difficultyConfig.snapDistance) {
+      drawPoint = { ...nearest.point, t: rawPoint.t };
+      setNextGuideIndex((prev) => Math.max(prev, nearest.index));
+      setReturnBubble(null);
+    } else if (nearest.distance > difficultyConfig.returnDistance) {
+      setReturnBubble(nearest.point);
+      setHelperMessage(difficultyMode === 'challenge' ? '自由写也可以，想贴线就跟着蓝泡泡' : '跟着蓝泡泡回到线条');
+    } else {
+      setReturnBubble(null);
+    }
+
+    setCurrentStroke((prev) => [...prev, drawPoint]);
   };
 
   const handleEnd = () => {
@@ -927,11 +1030,13 @@ const LetterView: React.FC<{
     }
 
     const coverage = coveredCount / pathPoints.length;
-    const isSuccess = coverage > 0.88 && metrics.scores.follow > 0.35;
+    const isSuccess =
+      coverage > difficultyConfig.successCoverage && metrics.scores.follow > difficultyConfig.successFollow;
 
     if (isSuccess) {
       playSound('end');
       setHelperMessage('太棒啦，完成啦');
+      setReturnBubble(null);
       setTimeout(onComplete, 500);
       return;
     }
@@ -939,7 +1044,10 @@ const LetterView: React.FC<{
     playSound('guide');
     setGuideFlash(true);
     setTimeout(() => setGuideFlash(false), 600);
-    if (coverage > 0.72) {
+    if (difficultyMode === 'challenge') {
+      setHelperMessage('很棒的尝试，按右上角↺可再来一次');
+      speak('很棒的尝试，再来一次会更顺', 'zh-CN', 0.6);
+    } else if (coverage > 0.72) {
       setHelperMessage('快完成啦，再把浅灰线连接起来');
       speak('快完成啦，再试一笔', 'zh-CN', 0.62);
     } else {
@@ -956,6 +1064,9 @@ const LetterView: React.FC<{
           🔙
         </button>
         <div className="flex gap-4">
+          <span className="bg-white/20 px-3 py-2 rounded-xl text-white font-black text-sm flex items-center">
+            {difficultyMode === 'guide' ? '引导模式' : difficultyMode === 'practice' ? '练习模式' : '挑战模式'}
+          </span>
           {supportsCaseToggle && (
             <button 
                onClick={() => setShowLowercase(!showLowercase)} 
@@ -1027,6 +1138,21 @@ const LetterView: React.FC<{
                   className="transition-colors duration-300"
                 />
 
+                {difficultyMode === 'guide' && !isDemonstrating && (
+                  <polyline
+                    points={pathPoints
+                      .slice(nextGuideIndex, Math.min(pathPoints.length, nextGuideIndex + 18))
+                      .map((p) => `${p.x},${p.y}`)
+                      .join(' ')}
+                    fill="none"
+                    stroke="#93c5fd"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.95"
+                  />
+                )}
+
                 {/* Stroke Order Guides (Numbered steps + Arrows) */}
                 {!isDemonstrating && guides.map((g) => (
                   <g key={g.id} transform={`translate(${g.x}, ${g.y})`} className="pointer-events-none transition-opacity duration-300 opacity-90">
@@ -1095,6 +1221,20 @@ const LetterView: React.FC<{
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
                 />
+
+                {!isDemonstrating && returnBubble && (
+                  <g transform={`translate(${returnBubble.x}, ${returnBubble.y})`}>
+                    <circle r="5.6" fill="#38bdf8" stroke="white" strokeWidth="1.5" opacity="0.95" />
+                    <path
+                      d="M -2 0 L 2 -4 M 2 -4 L 2 2"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                )}
               </svg>
 
               {/* Interaction Layer */}
@@ -1153,6 +1293,7 @@ export default function App() {
   const [showMissionRitual, setShowMissionRitual] = useState(false);
   const [returnViewAfterTrace, setReturnViewAfterTrace] = useState<AppView>(AppView.HOME);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>(initialChildState.sharkConfig);
+  const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>(initialChildState.difficultyMode);
   const [showSettings, setShowSettings] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
@@ -1263,8 +1404,9 @@ export default function App() {
       completedLetters,
       customImages,
       sharkConfig,
+      difficultyMode,
     });
-  }, [completedLetters, customImages, sharkConfig]);
+  }, [completedLetters, customImages, sharkConfig, difficultyMode]);
 
   useEffect(() => {
     if (!todayDay || todayDay.ritualDone) return;
@@ -1385,6 +1527,7 @@ export default function App() {
           onUpdateImage={handleUpdateImage}
           progressLevels={currentProgressLevels}
           onAttemptAnalyzed={handleAttemptAnalyzed}
+          difficultyMode={difficultyMode}
         />
       )}
 
@@ -1398,6 +1541,8 @@ export default function App() {
         config={sharkConfig}
         onChange={setSharkConfig}
         isCoralUnlocked={isCoralUnlocked}
+        difficultyMode={difficultyMode}
+        onChangeDifficulty={setDifficultyMode}
       />
       <MissionRitual isOpen={showMissionRitual} onHighFive={handleHighFiveRitual} />
     </div>
