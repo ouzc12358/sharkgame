@@ -159,12 +159,12 @@ const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: 
   orange: { body: '#fb923c', stroke: '#c2410c', belly: '#fed7aa', fin: '#f97316' },
   teal: { body: '#2dd4bf', stroke: '#0f766e', belly: '#99f6e4', fin: '#14b8a6' },
   yellow: { body: '#facc15', stroke: '#a16207', belly: '#fef08a', fin: '#eab308' },
-  coral: { body: '#fb7185', stroke: '#be123c', belly: '#fecdd3', fin: '#f43f5e' },
+  coral: { body: '#fda4af', stroke: '#fb7185', belly: '#ffe4e6', fin: '#fbcfe8' },
 };
 
 const CORAL_COLOR: SharkColor = 'coral';
 const SHARK_COLOR_OPTIONS: SharkColor[] = ['blue', 'pink', 'green', 'purple', 'orange', 'teal', 'yellow', CORAL_COLOR];
-const LOCKED_ACCESSORIES = new Set<SharkAccessory>(['redBag', 'greenBag']);
+const LOCKED_ACCESSORIES = new Set<SharkAccessory>(['redBag', 'greenBag', 'blueBag', 'lightCoralBag']);
 const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: string }> = [
   { id: 'none', label: '无', icon: '🚫' },
   { id: 'hat', label: '帽子', icon: '🎩' },
@@ -175,6 +175,8 @@ const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: 
   { id: 'scarf', label: '围巾', icon: '🧣' },
   { id: 'redBag', label: '红袋', icon: '🎒' },
   { id: 'greenBag', label: '绿袋', icon: '🟢' },
+  { id: 'blueBag', label: '蓝袋', icon: '🔵' },
+  { id: 'lightCoralBag', label: '浅珊瑚袋', icon: '🩷' },
 ];
 
 // --- Components ---
@@ -280,6 +282,22 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
             <rect x="-14" y="-6" width="34" height="28" rx="6" fill="#22c55e" stroke="#166534" strokeWidth="2.5" />
             <rect x="-10" y="-2" width="26" height="8" rx="3" fill="#4ade80" opacity="0.7" />
             <circle cx="3" cy="9" r="2" fill="#14532d" />
+          </g>
+        )}
+        {accessory === 'blueBag' && (
+          <g transform="translate(98, 95) rotate(8)">
+            <path d="M -8 -6 Q 5 -16 18 -6" fill="none" stroke="#1d4ed8" strokeWidth="3" strokeLinecap="round" />
+            <rect x="-14" y="-6" width="34" height="28" rx="6" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="2.5" />
+            <rect x="-10" y="-2" width="26" height="8" rx="3" fill="#93c5fd" opacity="0.8" />
+            <circle cx="3" cy="9" r="2" fill="#1e3a8a" />
+          </g>
+        )}
+        {accessory === 'lightCoralBag' && (
+          <g transform="translate(98, 95) rotate(8)">
+            <path d="M -8 -6 Q 5 -16 18 -6" fill="none" stroke="#fb7185" strokeWidth="3" strokeLinecap="round" />
+            <rect x="-14" y="-6" width="34" height="28" rx="6" fill="#fda4af" stroke="#fb7185" strokeWidth="2.5" />
+            <rect x="-10" y="-2" width="26" height="8" rx="3" fill="#fecdd3" opacity="0.85" />
+            <circle cx="3" cy="9" r="2" fill="#e11d48" />
           </g>
         )}
       </g>
@@ -401,7 +419,7 @@ const SettingsModal: React.FC<{
               })}
             </div>
             {!isCoralUnlocked && (
-              <p className="text-xs text-gray-500 mt-2">红袋/绿袋需完成全部字母或全部数字后解锁</p>
+              <p className="text-xs text-gray-500 mt-2">红袋/绿袋/蓝袋/浅珊瑚袋需完成全部字母或全部数字后解锁</p>
             )}
           </div>
         </div>
