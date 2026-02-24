@@ -26,6 +26,10 @@ export type LetterProgress = Record<string, boolean>; // char -> isCompleted
 
 export type DifficultyMode = 'guide' | 'practice' | 'challenge';
 export type SharkTheme = 'space' | 'fire' | 'diver';
+export type LearningBlockType = 'shapes' | 'numbers' | 'letters';
+export type DressupMissionPoolMode = LearningBlockType | 'mixed';
+export type SessionLengthTarget = 5 | 6 | 7 | 8;
+export type RhythmGateIntensity = 'light' | 'medium' | 'off';
 
 export type SharkColor = 'blue' | 'pink' | 'green' | 'purple' | 'orange' | 'teal' | 'yellow' | 'coral';
 export type SharkAccessory = 'none' | 'hat' | 'glasses' | 'bowtie' | 'crown' | 'headphones' | 'scarf' | 'redBag' | 'greenBag' | 'blueBag' | 'lightCoralBag';
