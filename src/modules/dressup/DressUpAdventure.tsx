@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  DifficultyMode,
   LetterConfig,
+  RhythmGateIntensity,
   SharkConfig,
   SharkTheme,
 } from '../../../types';
@@ -33,13 +33,13 @@ interface DressUpAdventureProps {
   themeUpgradeLevel: number;
   customImages: Record<string, string>;
   onUpdateImage: (char: string, image: string) => void;
-  difficultyMode: DifficultyMode;
   streak: number;
   diaryStickers: string[];
   sessionLengthTarget: number;
   styleTokens: number;
   skateModuleEnabled: boolean;
   onApplySkateLook: (look: 'base' | 'helmet' | 'pads' | 'board') => void;
+  rhythmGateIntensity: RhythmGateIntensity;
 }
 
 const ConfettiBurst: React.FC = () => {
@@ -106,6 +106,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   styleTokens,
   skateModuleEnabled,
   onApplySkateLook,
+  rhythmGateIntensity,
 }) => {
   const [activeMissionItem, setActiveMissionItem] = useState<MissionItem | null>(null);
   const [activeItem, setActiveItem] = useState<LetterConfig | null>(null);
@@ -113,6 +114,9 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   const [trickIndex, setTrickIndex] = useState(0);
   const [selectedTrickId, setSelectedTrickId] = useState<SkateTrickId>(SKATE_TRICK_LIST[0].id);
   const [showTrickShowcase, setShowTrickShowcase] = useState(false);
+  const [cosmeticActionsSinceChallenge, setCosmeticActionsSinceChallenge] = useState(0);
+  const [showRhythmPrompt, setShowRhythmPrompt] = useState(false);
+  const [pendingCosmeticAction, setPendingCosmeticAction] = useState<(() => void) | null>(null);
   const traceStartRef = useRef<number>(Date.now());
 
   const practicedSet = useMemo(() => new Set(practicedItemKeys), [practicedItemKeys]);
@@ -120,6 +124,22 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   const missionDone = completedCount >= mission.items.length;
   const currentTrick = SKATE_TRICK_LIST[trickIndex];
   const selectedTrick = SKATE_TRICK_LIST.find((trick) => trick.id === selectedTrickId) || SKATE_TRICK_LIST[0];
+  const rhythmThreshold =
+    rhythmGateIntensity === 'light' ? 3 : rhythmGateIntensity === 'medium' ? 2 : Number.POSITIVE_INFINITY;
+
+  const runCosmeticAction = (action: () => void) => {
+    if (!Number.isFinite(rhythmThreshold)) {
+      action();
+      return;
+    }
+    if (cosmeticActionsSinceChallenge >= rhythmThreshold) {
+      setPendingCosmeticAction(() => action);
+      setShowRhythmPrompt(true);
+      return;
+    }
+    action();
+    setCosmeticActionsSinceChallenge((prev) => prev + 1);
+  };
 
   const openMissionItem = (missionItem: MissionItem) => {
     const config = findConfigByMissionItem(missionItem);
@@ -154,6 +174,16 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
             setActiveItem(null);
             setShowCelebrate(true);
             window.setTimeout(() => setShowCelebrate(false), 1400);
+            setCosmeticActionsSinceChallenge(0);
+            if (pendingCosmeticAction) {
+              const deferred = pendingCosmeticAction;
+              setPendingCosmeticAction(null);
+              setShowRhythmPrompt(false);
+              window.setTimeout(() => {
+                deferred();
+                setCosmeticActionsSinceChallenge((prev) => prev + 1);
+              }, 300);
+            }
             if (skateModuleEnabled) {
               window.setTimeout(() => setShowTrickShowcase(true), 450);
             }
@@ -279,25 +309,25 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
               <p className="text-base font-black text-ocean-900 mb-2">Skate Shark</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                 <button
-                  onClick={() => onApplySkateLook('base')}
+                  onClick={() => runCosmeticAction(() => onApplySkateLook('base'))}
                   className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
                 >
                   Skate Park
                 </button>
                 <button
-                  onClick={() => onApplySkateLook('helmet')}
+                  onClick={() => runCosmeticAction(() => onApplySkateLook('helmet'))}
                   className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
                 >
                   头盔风格
                 </button>
                 <button
-                  onClick={() => onApplySkateLook('pads')}
+                  onClick={() => runCosmeticAction(() => onApplySkateLook('pads'))}
                   className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
                 >
                   护具风格
                 </button>
                 <button
-                  onClick={() => onApplySkateLook('board')}
+                  onClick={() => runCosmeticAction(() => onApplySkateLook('board'))}
                   className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
                 >
                   滑板风格
@@ -315,7 +345,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                     ‹
                   </button>
                   <button
-                    onClick={() => setShowTrickShowcase(true)}
+                    onClick={() => runCosmeticAction(() => setShowTrickShowcase(true))}
                     className="flex-1 text-left rounded-xl border border-ocean-200 px-3 py-2"
                   >
                     <p className="text-base font-black text-ocean-900">{currentTrick.nameZh}</p>
@@ -330,7 +360,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                   </button>
                 </div>
                 <button
-                  onClick={() => setSelectedTrickId(currentTrick.id)}
+                  onClick={() => runCosmeticAction(() => setSelectedTrickId(currentTrick.id))}
                   className="w-full mt-2 bg-ocean-500 text-white text-sm font-black py-2 rounded-xl active:scale-95"
                 >
                   选中这个动作 {selectedTrickId === currentTrick.id ? '✓' : ''}
@@ -379,6 +409,31 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         themeUpgradeLevel={themeUpgradeLevel}
         onClose={() => setShowTrickShowcase(false)}
       />
+
+      {showRhythmPrompt && (
+        <div className="fixed inset-0 z-[78] bg-black/35 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
+            <p className="text-4xl mb-2">🫧</p>
+            <p className="text-2xl font-black text-ocean-900 mb-1">先给小鲨鱼充能</p>
+            <p className="text-sm font-bold text-gray-500 mb-4">完成 1 个小挑战，再继续装扮会更投入。</p>
+            <button
+              onClick={() => {
+                setShowRhythmPrompt(false);
+                startNextMissionItem();
+              }}
+              className="w-full bg-ocean-500 text-white text-xl font-black py-3 rounded-2xl mb-2"
+            >
+              去做小挑战
+            </button>
+            <button
+              onClick={() => setShowRhythmPrompt(false)}
+              className="w-full bg-ocean-100 text-ocean-900 text-base font-black py-2 rounded-2xl"
+            >
+              稍后
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

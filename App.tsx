@@ -88,10 +88,10 @@ export default function App() {
   const [ttsEnabled, setTtsEnabled] = useState(initialChildState.ttsEnabled);
   const [soundsEnabled, setSoundsEnabled] = useState(initialChildState.soundsEnabled);
 
-  const [dressupMissionPool] = useState(initialChildState.dressupMissionPool);
-  const [sessionLengthTarget] = useState(initialChildState.sessionLengthTarget);
-  const [rhythmGateIntensity] = useState(initialChildState.rhythmGateIntensity);
-  const [skateModuleEnabled] = useState(initialChildState.skateModuleEnabled);
+  const [dressupMissionPool, setDressupMissionPool] = useState(initialChildState.dressupMissionPool);
+  const [sessionLengthTarget, setSessionLengthTarget] = useState(initialChildState.sessionLengthTarget);
+  const [rhythmGateIntensity, setRhythmGateIntensity] = useState(initialChildState.rhythmGateIntensity);
+  const [skateModuleEnabled, setSkateModuleEnabled] = useState(initialChildState.skateModuleEnabled);
   const [styleTokens, setStyleTokens] = useState(initialChildState.styleTokens);
 
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
@@ -395,13 +395,13 @@ export default function App() {
           themeUpgradeLevel={currentThemeUpgradeLevel}
           customImages={customImages}
           onUpdateImage={handleUpdateImage}
-          difficultyMode={difficultyMode}
           streak={missionStore.streak}
           diaryStickers={missionStore.history.map((entry) => entry.sticker).slice(0, 6).reverse()}
           sessionLengthTarget={sessionLengthTarget}
           styleTokens={styleTokens}
           skateModuleEnabled={skateModuleEnabled}
           onApplySkateLook={applySkateLook}
+          rhythmGateIntensity={rhythmGateIntensity}
         />
       );
     }
@@ -494,6 +494,14 @@ export default function App() {
         streak={missionStore.streak}
         suggestions={weakestMetricSuggestions}
         reviewReminders={reviewReminders}
+        dressupMissionPool={dressupMissionPool}
+        onChangeDressupMissionPool={setDressupMissionPool}
+        sessionLengthTarget={sessionLengthTarget}
+        onChangeSessionLengthTarget={setSessionLengthTarget}
+        rhythmGateIntensity={rhythmGateIntensity}
+        onChangeRhythmGateIntensity={setRhythmGateIntensity}
+        skateModuleEnabled={skateModuleEnabled}
+        onToggleSkateModule={setSkateModuleEnabled}
       />
 
     </div>
