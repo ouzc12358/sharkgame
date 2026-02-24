@@ -18,6 +18,7 @@ export enum AppView {
   HOME = 'HOME',
   LETTER_LIST = 'LETTER_LIST',
   NUMBER_LIST = 'NUMBER_LIST',
+  SHAPE_LIST = 'SHAPE_LIST',
   LETTER = 'LETTER',
 }
 

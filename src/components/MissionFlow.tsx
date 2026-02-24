@@ -11,6 +11,7 @@ interface MissionFlowProps {
   onStartMissionItem: (item: MissionItem) => void;
   onOpenLetters: () => void;
   onOpenNumbers: () => void;
+  onOpenShapes: () => void;
   onOpenSettings: () => void;
 }
 
@@ -24,6 +25,7 @@ const MissionFlow: React.FC<MissionFlowProps> = ({
   onStartMissionItem,
   onOpenLetters,
   onOpenNumbers,
+  onOpenShapes,
   onOpenSettings,
 }) => {
   const practicedSet = new Set(practicedItemKeys);
@@ -73,6 +75,9 @@ const MissionFlow: React.FC<MissionFlowProps> = ({
               >
                 <div className="text-6xl font-black text-ocean-900 mb-2">{item.char}</div>
                 <div className="text-lg font-black text-gray-600">{done ? '完成啦' : '点我练习'}</div>
+                <div className="text-xs font-bold text-gray-400 mt-1">
+                  {item.type === 'letter' ? '字母' : item.type === 'number' ? '数字' : '线条'}
+                </div>
               </button>
             );
           })}
@@ -93,7 +98,7 @@ const MissionFlow: React.FC<MissionFlowProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-8">
           <button
             onClick={onOpenLetters}
             className="bg-white rounded-2xl p-4 text-left shadow-[0_6px_0_rgba(0,0,0,0.1)] active:translate-y-1 active:shadow-none"
@@ -107,6 +112,13 @@ const MissionFlow: React.FC<MissionFlowProps> = ({
           >
             <div className="text-3xl mb-1">🔢</div>
             <div className="text-xl font-black text-ocean-900">自由练数字</div>
+          </button>
+          <button
+            onClick={onOpenShapes}
+            className="bg-white rounded-2xl p-4 text-left shadow-[0_6px_0_rgba(0,0,0,0.1)] active:translate-y-1 active:shadow-none"
+          >
+            <div className="text-3xl mb-1">🧩</div>
+            <div className="text-xl font-black text-ocean-900">自由练线条</div>
           </button>
         </div>
       </div>

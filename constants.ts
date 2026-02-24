@@ -45,3 +45,13 @@ export const LETTERS: LetterConfig[] = [
 
 export const LETTER_ITEMS = LETTERS.filter((item) => /^[A-Z]$/.test(item.char));
 export const NUMBER_ITEMS = LETTERS.filter((item) => /^[0-9]$/.test(item.char));
+
+export const SHAPE_ITEMS: LetterConfig[] = [
+  { char: '—', word: '横线', emoji: '➖', viewBox: "0 0 100 100", svgPath: "M 20 50 L 80 50" },
+  { char: '|', word: '竖线', emoji: '📏', viewBox: "0 0 100 100", svgPath: "M 50 20 L 50 80" },
+  { char: '/', word: '斜线', emoji: '📐', viewBox: "0 0 100 100", svgPath: "M 25 75 L 75 25" },
+  { char: '○', word: '圆圈', emoji: '⭕', viewBox: "0 0 100 100", svgPath: "M 50 20 C 30 20 20 35 20 50 C 20 65 30 80 50 80 C 70 80 80 65 80 50 C 80 35 70 20 50 20" },
+  { char: '⌒', word: '弧线', emoji: '🌙', viewBox: "0 0 100 100", svgPath: "M 20 70 C 35 25 65 25 80 70" },
+  { char: '⚡', word: '锯齿线', emoji: '⚡', viewBox: "0 0 100 100", svgPath: "M 20 30 L 40 55 L 60 30 L 80 55" },
+  { char: '✚', word: '交叉线', emoji: '❌', viewBox: "0 0 100 100", svgPath: "M 25 25 L 75 75 M 75 25 L 25 75" },
+];

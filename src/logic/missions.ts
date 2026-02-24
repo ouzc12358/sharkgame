@@ -66,17 +66,23 @@ export const missionItemKey = (item: MissionItem) => `${item.type}:${item.char}`
 export const buildDailyMission = (
   dateKey: string,
   letterChars: string[],
-  numberChars: string[]
+  numberChars: string[],
+  shapeChars: string[] = []
 ): DailyMission => {
   const rnd = createSeededRandom(hashSeed(dateKey));
-  const letterCount = rnd() > 0.5 ? 2 : 1;
-  const numberCount = 3 - letterCount;
+  const shapeCount = shapeChars.length > 0 && rnd() > 0.45 ? 1 : 0;
+  const remaining = 3 - shapeCount;
+  const letterCount = remaining === 3 ? (rnd() > 0.5 ? 2 : 1) : rnd() > 0.55 ? 1 : 0;
+  const numberCount = Math.max(0, remaining - letterCount);
+
   const letters = pickUnique(letterChars, letterCount, rnd);
   const numbers = pickUnique(numberChars, numberCount, rnd);
+  const shapes = pickUnique(shapeChars, shapeCount, rnd);
 
   const items: MissionItem[] = [
     ...letters.map((char, idx) => ({ id: `L${idx}-${char}`, type: 'letter' as const, char })),
     ...numbers.map((char, idx) => ({ id: `N${idx}-${char}`, type: 'number' as const, char })),
+    ...shapes.map((char, idx) => ({ id: `S${idx}-${char}`, type: 'shape' as const, char })),
   ];
 
   // Small deterministic shuffle to avoid same order feeling.

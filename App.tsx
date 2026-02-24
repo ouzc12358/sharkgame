@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { LETTER_ITEMS, NUMBER_ITEMS } from './constants';
+import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
 import MissionFlow from './src/components/MissionFlow';
 import MissionRitual from './src/components/MissionRitual';
@@ -53,7 +53,14 @@ const NUMBER_ZH_MAP: Record<string, string> = {
 };
 
 const isNumberItem = (char: string) => /^[0-9]$/.test(char);
-const getPracticeItemKey = (char: string) => (isNumberItem(char) ? `number:${char}` : `letter:${char}`);
+const getPracticeItemKey = (
+  char: string,
+  category: LearningCategory | MissionItem['type']
+) => {
+  if (category === 'numbers' || category === 'number') return `number:${char}`;
+  if (category === 'shapes' || category === 'shape') return `shape:${char}`;
+  return `letter:${char}`;
+};
 const DEFAULT_METRIC_LEVELS: TraceMetricLevels = { follow: 2, smoothness: 2, continuity: 2 };
 
 const speakItemPrimary = (item: LetterConfig) => {
@@ -62,7 +69,11 @@ const speakItemPrimary = (item: LetterConfig) => {
     speak(`数字${zhNumber}`, 'zh-CN');
     return;
   }
-  speak(item.char.toLowerCase(), 'en-US');
+  if (/^[A-Z]$/.test(item.char)) {
+    speak(item.char.toLowerCase(), 'en-US');
+    return;
+  }
+  speak(item.word, 'zh-CN');
 };
 
 // Simple synthesizer for UI sound effects
@@ -202,6 +213,38 @@ const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: 
   { id: 'blueBag', label: '蓝袋', icon: '🔵' },
   { id: 'lightCoralBag', label: '浅珊瑚袋', icon: '🩷' },
 ];
+
+const CHILD_STATE_STORAGE_KEY = 'sharkgame.childState.v1';
+
+interface ChildStateSnapshot {
+  completedLetters: LetterProgress;
+  customImages: Record<string, string>;
+  sharkConfig: SharkConfig;
+}
+
+const loadChildState = (): ChildStateSnapshot => {
+  const defaults: ChildStateSnapshot = {
+    completedLetters: {},
+    customImages: {},
+    sharkConfig: { color: 'blue', accessory: 'none' },
+  };
+  try {
+    const raw = localStorage.getItem(CHILD_STATE_STORAGE_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as Partial<ChildStateSnapshot>;
+    return {
+      completedLetters: parsed.completedLetters || {},
+      customImages: parsed.customImages || {},
+      sharkConfig: parsed.sharkConfig || defaults.sharkConfig,
+    };
+  } catch {
+    return defaults;
+  }
+};
+
+const saveChildState = (snapshot: ChildStateSnapshot) => {
+  localStorage.setItem(CHILD_STATE_STORAGE_KEY, JSON.stringify(snapshot));
+};
 
 // --- Components ---
 
@@ -647,7 +690,7 @@ const ImageGenModal: React.FC<{
 };
 
 
-type LearningCategory = 'letters' | 'numbers';
+type LearningCategory = 'letters' | 'numbers' | 'shapes';
 // 7. Character Grid View
 const CharacterGridView: React.FC<{
   title: string;
@@ -771,6 +814,7 @@ const LetterView: React.FC<{
   const [showLowercase, setShowLowercase] = useState(false);
   const [showMagicModal, setShowMagicModal] = useState(false);
   const supportsCaseToggle = /^[A-Z]$/.test(letter.char);
+  const isShapeChallenge = !supportsCaseToggle && !isNumberItem(letter.char);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathPoints = useMemo(() => getPathPoints(letter.svgPath), [letter]);
@@ -783,13 +827,17 @@ const LetterView: React.FC<{
   useEffect(() => {
     setStrokes([]);
     setCurrentStroke([]);
-    setHelperMessage('请沿着线写');
+    setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '请沿着线写');
     setIsDemonstrating(true);
     
     // Audio Sequence: Letter -> Wait -> Word
     speakItemPrimary(letter);
     const wordTimer = setTimeout(() => {
-      speak(letter.word, 'en-US'); // Say word
+      if (supportsCaseToggle) {
+        speak(letter.word, 'en-US');
+      } else {
+        speak(letter.word, 'zh-CN');
+      }
     }, 1500);
 
     const timer = setTimeout(() => setIsDemonstrating(false), 3500); // Wait for demo animation
@@ -798,13 +846,13 @@ const LetterView: React.FC<{
       clearTimeout(timer);
       clearTimeout(wordTimer);
     };
-  }, [letter]);
+  }, [letter, isShapeChallenge, supportsCaseToggle]);
 
   // Handle re-drawing
   const handleReplay = () => {
     setStrokes([]);
     setCurrentStroke([]);
-    setHelperMessage('再试一次，慢慢来');
+    setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '再试一次，慢慢来');
     setIsDemonstrating(true);
     speakItemPrimary(letter);
     
@@ -1065,6 +1113,9 @@ const LetterView: React.FC<{
               />
             </div>
             
+            {isShapeChallenge && (
+              <p className="text-sm text-ocean-600 font-black mb-2">10-20 秒线条小挑战</p>
+            )}
             <p className="mt-6 text-gray-400 font-bold text-lg">
               {isDemonstrating ? '看这里！' : helperMessage}
             </p>
@@ -1093,23 +1144,30 @@ const LetterView: React.FC<{
 
 // 10. Main App
 export default function App() {
+  const initialChildState = useMemo(() => loadChildState(), []);
   const [view, setView] = useState<AppView>(AppView.INTRO);
   const [activeCategory, setActiveCategory] = useState<LearningCategory>('letters');
   const [currentLetter, setCurrentLetter] = useState<LetterConfig | null>(null);
-  const [completedLetters, setCompletedLetters] = useState<LetterProgress>({});
+  const [completedLetters, setCompletedLetters] = useState<LetterProgress>(initialChildState.completedLetters);
   const [showReward, setShowReward] = useState(false);
   const [showMissionRitual, setShowMissionRitual] = useState(false);
   const [returnViewAfterTrace, setReturnViewAfterTrace] = useState<AppView>(AppView.HOME);
-  const [sharkConfig, setSharkConfig] = useState<SharkConfig>({ color: 'blue', accessory: 'none' });
+  const [sharkConfig, setSharkConfig] = useState<SharkConfig>(initialChildState.sharkConfig);
   const [showSettings, setShowSettings] = useState(false);
-  const [customImages, setCustomImages] = useState<Record<string, string>>({});
+  const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
   const [metricsStore, setMetricsStore] = useState<TraceMetricsStore>(() => loadMetricsStore());
   const traceStartRef = useRef<number>(Date.now());
 
   const todayKey = getDateKey();
   const todayMission = useMemo(
-    () => buildDailyMission(todayKey, LETTER_ITEMS.map((item) => item.char), NUMBER_ITEMS.map((item) => item.char)),
+    () =>
+      buildDailyMission(
+        todayKey,
+        LETTER_ITEMS.map((item) => item.char),
+        NUMBER_ITEMS.map((item) => item.char),
+        SHAPE_ITEMS.map((item) => item.char)
+      ),
     [todayKey]
   );
   const todayDay = missionStore.days[todayKey];
@@ -1120,13 +1178,13 @@ export default function App() {
   const lettersDone = LETTER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const numbersDone = NUMBER_ITEMS.filter((item) => completedLetters[item.char]).length;
   const isCoralUnlocked = lettersDone === LETTER_ITEMS.length || numbersDone === NUMBER_ITEMS.length;
-  const currentItemKey = currentLetter ? getPracticeItemKey(currentLetter.char) : null;
+  const currentItemKey = currentLetter ? getPracticeItemKey(currentLetter.char, activeCategory) : null;
   const currentProgressLevels = currentItemKey
     ? getDisplayLevels(metricsStore, currentItemKey)
     : DEFAULT_METRIC_LEVELS;
 
   const getCategoryView = (category: LearningCategory) =>
-    category === 'letters' ? AppView.LETTER_LIST : AppView.NUMBER_LIST;
+    category === 'letters' ? AppView.LETTER_LIST : category === 'numbers' ? AppView.NUMBER_LIST : AppView.SHAPE_LIST;
 
   const handleStart = () => setView(AppView.HOME);
 
@@ -1154,7 +1212,8 @@ export default function App() {
         (item) =>
           item.char === currentLetter.char &&
           ((item.type === 'letter' && activeCategory === 'letters') ||
-            (item.type === 'number' && activeCategory === 'numbers'))
+            (item.type === 'number' && activeCategory === 'numbers') ||
+            (item.type === 'shape' && activeCategory === 'shapes'))
       );
       if (missionItem) {
         const itemKey = missionItemKey(missionItem);
@@ -1178,7 +1237,7 @@ export default function App() {
 
   const handleAttemptAnalyzed = (attempt: TraceAttempt) => {
     if (!currentLetter) return;
-    const itemKey = getPracticeItemKey(currentLetter.char);
+    const itemKey = getPracticeItemKey(currentLetter.char, activeCategory);
     setMetricsStore((prev) => {
       const previous = getLatestAttempt(prev, itemKey);
       const message = pickPraiseMessage(previous, attempt);
@@ -1200,6 +1259,14 @@ export default function App() {
   }, [metricsStore]);
 
   useEffect(() => {
+    saveChildState({
+      completedLetters,
+      customImages,
+      sharkConfig,
+    });
+  }, [completedLetters, customImages, sharkConfig]);
+
+  useEffect(() => {
     if (!todayDay || todayDay.ritualDone) return;
     if (missionDoneCount >= todayMission.items.length) {
       setShowMissionRitual(true);
@@ -1207,10 +1274,11 @@ export default function App() {
   }, [missionDoneCount, todayDay, todayMission.items.length]);
 
   const handleStartMissionItem = (item: MissionItem) => {
-    const sourceItems = item.type === 'letter' ? LETTER_ITEMS : NUMBER_ITEMS;
+    const sourceItems =
+      item.type === 'letter' ? LETTER_ITEMS : item.type === 'number' ? NUMBER_ITEMS : SHAPE_ITEMS;
     const config = sourceItems.find((entry) => entry.char === item.char);
     if (!config) return;
-    setActiveCategory(item.type === 'letter' ? 'letters' : 'numbers');
+    setActiveCategory(item.type === 'letter' ? 'letters' : item.type === 'number' ? 'numbers' : 'shapes');
     setCurrentLetter(config);
     setReturnViewAfterTrace(AppView.HOME);
     traceStartRef.current = Date.now();
@@ -1266,6 +1334,7 @@ export default function App() {
           onStartMissionItem={handleStartMissionItem}
           onOpenLetters={() => handleSelectCategory('letters')}
           onOpenNumbers={() => handleSelectCategory('numbers')}
+          onOpenShapes={() => handleSelectCategory('shapes')}
           onOpenSettings={() => setShowSettings(true)}
         />
       )}
@@ -1289,6 +1358,18 @@ export default function App() {
           progress={completedLetters}
           customImages={customImages}
           onSelectLetter={(letter) => handleSelectLetter(letter, 'numbers')}
+          onBack={() => setView(AppView.HOME)}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+      )}
+
+      {view === AppView.SHAPE_LIST && (
+        <CharacterGridView
+          title="线条练习"
+          items={SHAPE_ITEMS}
+          progress={completedLetters}
+          customImages={customImages}
+          onSelectLetter={(letter) => handleSelectLetter(letter, 'shapes')}
           onBack={() => setView(AppView.HOME)}
           onOpenSettings={() => setShowSettings(true)}
         />
