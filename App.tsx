@@ -183,6 +183,20 @@ export default function App() {
     }));
   };
 
+  const applySkateLook = (look: 'base' | 'helmet' | 'pads' | 'board') => {
+    applyTheme('skate');
+    const accessoryMap = {
+      base: 'board',
+      helmet: 'helmet',
+      pads: 'pads',
+      board: 'board',
+    } as const;
+    setSharkConfig((prev) => ({
+      ...prev,
+      accessory: accessoryMap[look],
+    }));
+  };
+
   const clearParentHold = () => {
     if (parentHoldTimerRef.current !== null) {
       window.clearTimeout(parentHoldTimerRef.current);
@@ -386,6 +400,8 @@ export default function App() {
           diaryStickers={missionStore.history.map((entry) => entry.sticker).slice(0, 6).reverse()}
           sessionLengthTarget={sessionLengthTarget}
           styleTokens={styleTokens}
+          skateModuleEnabled={skateModuleEnabled}
+          onApplySkateLook={applySkateLook}
         />
       );
     }

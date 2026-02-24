@@ -83,6 +83,13 @@ const FriendlyShark: React.FC<FriendlySharkProps> = ({
             <circle cx="14" cy="34" r="2.5" fill="#a5f3fc" />
           </g>
         )}
+        {theme === 'skate' && (
+          <g opacity="0.85">
+            <path d="M 12 122 Q 60 138 132 124" fill="none" stroke="#93c5fd" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="18" cy="118" r="2.5" fill="#bfdbfe" />
+            <circle cx="28" cy="126" r="2" fill="#93c5fd" />
+          </g>
+        )}
 
         {upgradeLevel >= 1 && (
           <path
@@ -158,6 +165,30 @@ const FriendlyShark: React.FC<FriendlySharkProps> = ({
               strokeWidth="2"
             />
             <path d="M 20 10 L 30 34 L 14 28 L 10 45 L 2 24 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="2" />
+          </g>
+        )}
+        {accessory === 'helmet' && (
+          <g transform="translate(82, 26)">
+            <path d="M 0 12 Q 10 -2 26 4 Q 32 10 32 20 L 0 20 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2.5" />
+            <rect x="1" y="18" width="30" height="6" rx="3" fill="#fca5a5" stroke="#991b1b" strokeWidth="1.8" />
+            <rect x="8" y="9" width="10" height="4" rx="2" fill="#fef2f2" opacity="0.8" />
+          </g>
+        )}
+        {accessory === 'pads' && (
+          <g transform="translate(86, 108)">
+            <circle cx="0" cy="0" r="8" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
+            <circle cx="34" cy="-8" r="8" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
+            <circle cx="0" cy="0" r="3" fill="#e2e8f0" />
+            <circle cx="34" cy="-8" r="3" fill="#e2e8f0" />
+          </g>
+        )}
+        {accessory === 'board' && (
+          <g transform="translate(74, 132)">
+            <rect x="-18" y="-4" width="86" height="14" rx="7" fill="#0ea5e9" stroke="#0f172a" strokeWidth="2" />
+            <circle cx="-4" cy="14" r="5" fill="#1f2937" />
+            <circle cx="54" cy="14" r="5" fill="#1f2937" />
+            <circle cx="-4" cy="14" r="2" fill="#f8fafc" />
+            <circle cx="54" cy="14" r="2" fill="#f8fafc" />
           </g>
         )}
         {accessory === 'redBag' && (

@@ -10,6 +10,8 @@ import { LearningCategory, missionTypeToCategory } from '../../logic/tracing';
 import { TraceAttempt, TraceMetricLevels } from '../../logic/metrics';
 import FriendlyShark from '../../components/FriendlyShark';
 import TracePracticeView from '../learn/TracePracticeView';
+import { SKATE_TRICK_LIST, SkateTrickId } from '../skate/SkateTricks';
+import TrickShowcase from '../skate/TrickShowcase';
 
 interface DressUpAdventureProps {
   mission: DailyMission;
@@ -36,6 +38,8 @@ interface DressUpAdventureProps {
   diaryStickers: string[];
   sessionLengthTarget: number;
   styleTokens: number;
+  skateModuleEnabled: boolean;
+  onApplySkateLook: (look: 'base' | 'helmet' | 'pads' | 'board') => void;
 }
 
 const ConfettiBurst: React.FC = () => {
@@ -96,20 +100,26 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   themeUpgradeLevel,
   customImages,
   onUpdateImage,
-  difficultyMode,
   streak,
   diaryStickers,
   sessionLengthTarget,
   styleTokens,
+  skateModuleEnabled,
+  onApplySkateLook,
 }) => {
   const [activeMissionItem, setActiveMissionItem] = useState<MissionItem | null>(null);
   const [activeItem, setActiveItem] = useState<LetterConfig | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
+  const [trickIndex, setTrickIndex] = useState(0);
+  const [selectedTrickId, setSelectedTrickId] = useState<SkateTrickId>(SKATE_TRICK_LIST[0].id);
+  const [showTrickShowcase, setShowTrickShowcase] = useState(false);
   const traceStartRef = useRef<number>(Date.now());
 
   const practicedSet = useMemo(() => new Set(practicedItemKeys), [practicedItemKeys]);
   const completedCount = mission.items.filter((item) => practicedSet.has(missionItemKey(item))).length;
   const missionDone = completedCount >= mission.items.length;
+  const currentTrick = SKATE_TRICK_LIST[trickIndex];
+  const selectedTrick = SKATE_TRICK_LIST.find((trick) => trick.id === selectedTrickId) || SKATE_TRICK_LIST[0];
 
   const openMissionItem = (missionItem: MissionItem) => {
     const config = findConfigByMissionItem(missionItem);
@@ -144,6 +154,9 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
             setActiveItem(null);
             setShowCelebrate(true);
             window.setTimeout(() => setShowCelebrate(false), 1400);
+            if (skateModuleEnabled) {
+              window.setTimeout(() => setShowTrickShowcase(true), 450);
+            }
           }}
           sharkConfig={sharkConfig}
           customImage={customImages[activeItem.char] || null}
@@ -165,6 +178,15 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
             </div>
           </div>
         )}
+
+        <TrickShowcase
+          isOpen={showTrickShowcase}
+          trick={selectedTrick}
+          sharkConfig={sharkConfig}
+          theme={theme}
+          themeUpgradeLevel={themeUpgradeLevel}
+          onClose={() => setShowTrickShowcase(false)}
+        />
       </div>
     );
   }
@@ -211,10 +233,19 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           </div>
 
           <p className="text-base md:text-lg font-bold text-gray-600 mb-3">{mission.story}</p>
-          <div className="flex items-center gap-3 text-sm font-black text-ocean-700 mb-4">
+          <div className="flex flex-wrap items-center gap-3 text-sm font-black text-ocean-700 mb-4">
             <span>🔥 连续 {streak} 天</span>
             <span>🫧 创意泡泡 {styleTokens}</span>
-            <span>📌 任务池：{mission.poolMode === 'shapes' ? '线条' : mission.poolMode === 'numbers' ? '数字' : mission.poolMode === 'letters' ? '字母' : '混合'}</span>
+            <span>
+              📌 任务池：
+              {mission.poolMode === 'shapes'
+                ? '线条'
+                : mission.poolMode === 'numbers'
+                ? '数字'
+                : mission.poolMode === 'letters'
+                ? '字母'
+                : '混合'}
+            </span>
           </div>
 
           <div className="bg-ocean-50 rounded-2xl p-4 mb-4">
@@ -242,6 +273,71 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
               })}
             </div>
           </div>
+
+          {skateModuleEnabled && (
+            <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-4">
+              <p className="text-base font-black text-ocean-900 mb-2">Skate Shark</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                <button
+                  onClick={() => onApplySkateLook('base')}
+                  className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
+                >
+                  Skate Park
+                </button>
+                <button
+                  onClick={() => onApplySkateLook('helmet')}
+                  className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
+                >
+                  头盔风格
+                </button>
+                <button
+                  onClick={() => onApplySkateLook('pads')}
+                  className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
+                >
+                  护具风格
+                </button>
+                <button
+                  onClick={() => onApplySkateLook('board')}
+                  className="rounded-xl bg-white border border-sky-200 py-2 text-sm font-black text-ocean-900 active:scale-95"
+                >
+                  滑板风格
+                </button>
+              </div>
+
+              <div className="bg-white rounded-2xl p-3 border border-sky-100">
+                <p className="text-sm font-black text-ocean-800 mb-1">今天想教鲨鱼哪个动作？</p>
+                <p className="text-xs font-bold text-gray-500 mb-3">完成一个微挑战后会播放动作秀</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTrickIndex((prev) => (prev - 1 + SKATE_TRICK_LIST.length) % SKATE_TRICK_LIST.length)}
+                    className="w-9 h-9 rounded-full bg-ocean-100 text-ocean-900 font-black"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => setShowTrickShowcase(true)}
+                    className="flex-1 text-left rounded-xl border border-ocean-200 px-3 py-2"
+                  >
+                    <p className="text-base font-black text-ocean-900">{currentTrick.nameZh}</p>
+                    <p className="text-xs font-bold text-gray-500">{currentTrick.nameEn}</p>
+                    <p className="text-xs font-bold text-ocean-700 mt-1">{currentTrick.prompt}</p>
+                  </button>
+                  <button
+                    onClick={() => setTrickIndex((prev) => (prev + 1) % SKATE_TRICK_LIST.length)}
+                    className="w-9 h-9 rounded-full bg-ocean-100 text-ocean-900 font-black"
+                  >
+                    ›
+                  </button>
+                </div>
+                <button
+                  onClick={() => setSelectedTrickId(currentTrick.id)}
+                  className="w-full mt-2 bg-ocean-500 text-white text-sm font-black py-2 rounded-xl active:scale-95"
+                >
+                  选中这个动作 {selectedTrickId === currentTrick.id ? '✓' : ''}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {mission.items.map((item) => {
@@ -274,6 +370,15 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           )}
         </div>
       </div>
+
+      <TrickShowcase
+        isOpen={showTrickShowcase && skateModuleEnabled}
+        trick={selectedTrick}
+        sharkConfig={sharkConfig}
+        theme={theme}
+        themeUpgradeLevel={themeUpgradeLevel}
+        onClose={() => setShowTrickShowcase(false)}
+      />
     </div>
   );
 };

@@ -33,6 +33,9 @@ export const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string;
   { id: 'crown', label: '皇冠', icon: '👑' },
   { id: 'headphones', label: '耳机', icon: '🎧' },
   { id: 'scarf', label: '围巾', icon: '🧣' },
+  { id: 'helmet', label: '头盔', icon: '⛑️' },
+  { id: 'pads', label: '护具', icon: '🛡️' },
+  { id: 'board', label: '滑板', icon: '🛹' },
   { id: 'redBag', label: '红袋', icon: '🎒' },
   { id: 'greenBag', label: '绿袋', icon: '🟢' },
   { id: 'blueBag', label: '蓝袋', icon: '🔵' },
@@ -46,9 +49,10 @@ export const SHARK_THEME_PRESETS: Record<
   space: { label: '太空鲨', icon: '🚀', color: 'purple', accessory: 'crown', summary: '星光、闪耀、漂浮' },
   fire: { label: '火焰鲨', icon: '🔥', color: 'orange', accessory: 'scarf', summary: '暖色、速度、活力' },
   diver: { label: '潜水鲨', icon: '🤿', color: 'teal', accessory: 'glasses', summary: '海泡泡、探索、沉浸' },
+  skate: { label: '滑板鲨', icon: '🛹', color: 'blue', accessory: 'board', summary: '滑行、跳跃、潮流' },
 };
 
-export const SHARK_THEME_ORDER: SharkTheme[] = ['space', 'fire', 'diver'];
+export const SHARK_THEME_ORDER: SharkTheme[] = ['space', 'fire', 'diver', 'skate'];
 
 export const getThemeUpgradeLevel = (practiceCount: number) =>
   Math.max(0, Math.min(3, Math.floor(practiceCount / 4)));

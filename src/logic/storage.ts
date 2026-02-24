@@ -35,7 +35,7 @@ const DEFAULT_STATE: ChildStateSnapshot = {
   },
   difficultyMode: 'guide',
   currentTheme: 'diver',
-  themePracticeCounts: { space: 0, fire: 0, diver: 0 },
+  themePracticeCounts: { space: 0, fire: 0, diver: 0, skate: 0 },
   ttsEnabled: true,
   soundsEnabled: true,
   dressupMissionPool: 'shapes',
@@ -49,7 +49,7 @@ const safeMode = (value: unknown): DifficultyMode =>
   value === 'guide' || value === 'practice' || value === 'challenge' ? value : 'guide';
 
 const safeTheme = (value: unknown): SharkTheme =>
-  value === 'space' || value === 'fire' || value === 'diver' ? value : 'diver';
+  value === 'space' || value === 'fire' || value === 'diver' || value === 'skate' ? value : 'diver';
 
 const safePoolMode = (value: unknown): DressupMissionPoolMode =>
   value === 'shapes' || value === 'numbers' || value === 'letters' || value === 'mixed' ? value : 'shapes';
@@ -76,6 +76,7 @@ export const loadChildState = (): ChildStateSnapshot => {
         space: Math.max(0, parsed.themePracticeCounts?.space || 0),
         fire: Math.max(0, parsed.themePracticeCounts?.fire || 0),
         diver: Math.max(0, parsed.themePracticeCounts?.diver || 0),
+        skate: Math.max(0, parsed.themePracticeCounts?.skate || 0),
       },
       ttsEnabled: parsed.ttsEnabled !== false,
       soundsEnabled: parsed.soundsEnabled !== false,
