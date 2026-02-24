@@ -14,6 +14,7 @@ import {
 } from './types';
 import MissionFlow from './src/components/MissionFlow';
 import MissionRitual from './src/components/MissionRitual';
+import ParentZone from './src/components/ParentZone';
 import { buildDailyMission, getDateKey, MissionItem, missionItemKey } from './src/logic/missions';
 import {
   addPracticedMissionItem,
@@ -38,7 +39,18 @@ import {
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
+const AUDIO_PREFS = {
+  ttsEnabled: true,
+  soundsEnabled: true,
+};
+
+const setAudioPreferenceFlags = (next: { ttsEnabled: boolean; soundsEnabled: boolean }) => {
+  AUDIO_PREFS.ttsEnabled = next.ttsEnabled;
+  AUDIO_PREFS.soundsEnabled = next.soundsEnabled;
+};
+
 const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.5) => {
+  if (!AUDIO_PREFS.ttsEnabled) return;
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -90,6 +102,7 @@ const speakItemPrimary = (item: LetterConfig) => {
 const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
 const playSound = (type: 'start' | 'end' | 'guide') => {
+  if (!AUDIO_PREFS.soundsEnabled) return;
   // Ensure context is running (browsers suspend it until user interaction)
   if (audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
@@ -234,6 +247,22 @@ const SHARK_THEME_PRESETS: Record<
 const SHARK_THEME_ORDER: SharkTheme[] = ['space', 'fire', 'diver'];
 const getThemeUpgradeLevel = (practiceCount: number) => Math.max(0, Math.min(3, Math.floor(practiceCount / 4)));
 
+const formatPracticeItemKey = (itemKey: string) => {
+  const [type, char] = itemKey.split(':');
+  if (!char) return itemKey;
+  if (type === 'letter') return `字母 ${char}`;
+  if (type === 'number') return `数字 ${char}`;
+  if (type === 'shape') return `线条 ${char}`;
+  return itemKey;
+};
+
+const daysBetween = (fromDate: string, toDate: string) => {
+  const from = new Date(`${fromDate}T00:00:00`);
+  const to = new Date(`${toDate}T00:00:00`);
+  const diff = to.getTime() - from.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+};
+
 const CHILD_STATE_STORAGE_KEY = 'sharkgame.childState.v1';
 
 interface ChildStateSnapshot {
@@ -243,6 +272,8 @@ interface ChildStateSnapshot {
   difficultyMode: DifficultyMode;
   currentTheme: SharkTheme;
   themePracticeCounts: Record<SharkTheme, number>;
+  ttsEnabled: boolean;
+  soundsEnabled: boolean;
 }
 
 const loadChildState = (): ChildStateSnapshot => {
@@ -256,6 +287,8 @@ const loadChildState = (): ChildStateSnapshot => {
     difficultyMode: 'guide',
     currentTheme: 'diver',
     themePracticeCounts: { space: 0, fire: 0, diver: 0 },
+    ttsEnabled: true,
+    soundsEnabled: true,
   };
   try {
     const raw = localStorage.getItem(CHILD_STATE_STORAGE_KEY);
@@ -286,6 +319,8 @@ const loadChildState = (): ChildStateSnapshot => {
       difficultyMode: safeMode,
       currentTheme: safeTheme,
       themePracticeCounts: safeCounts,
+      ttsEnabled: parsed.ttsEnabled !== false,
+      soundsEnabled: parsed.soundsEnabled !== false,
     };
   } catch {
     return defaults;
@@ -304,12 +339,6 @@ const DIFFICULTY_CONFIG: Record<
   practice: { snapDistance: 8, returnDistance: 14, successCoverage: 0.86, successFollow: 0.31 },
   challenge: { snapDistance: 4, returnDistance: 10, successCoverage: 0.9, successFollow: 0.38 },
 };
-
-const DIFFICULTY_OPTIONS: Array<{ id: DifficultyMode; label: string; hint: string }> = [
-  { id: 'guide', label: '引导', hint: '强吸附，逐段提示' },
-  { id: 'practice', label: '练习', hint: '中等吸附，自主描线' },
-  { id: 'challenge', label: '挑战', hint: '轻吸附，自由书写' },
-];
 
 // --- Components ---
 
@@ -533,9 +562,7 @@ const SettingsModal: React.FC<{
   theme: SharkTheme,
   themeUpgradeLevel: number,
   themePracticeCount: number,
-  onApplyTheme: (theme: SharkTheme) => void,
-  difficultyMode: DifficultyMode,
-  onChangeDifficulty: (mode: DifficultyMode) => void
+  onApplyTheme: (theme: SharkTheme) => void
 }> = ({
   isOpen,
   onClose,
@@ -545,8 +572,6 @@ const SettingsModal: React.FC<{
   themeUpgradeLevel,
   themePracticeCount,
   onApplyTheme,
-  difficultyMode,
-  onChangeDifficulty,
 }) => {
   if (!isOpen) return null;
 
@@ -628,25 +653,6 @@ const SettingsModal: React.FC<{
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-bold text-gray-700 mb-3">难度 (Difficulty)</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {DIFFICULTY_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => onChangeDifficulty(option.id)}
-                  className={`rounded-xl border-2 p-3 text-left transition-all active:scale-95 ${
-                    difficultyMode === option.id
-                      ? 'border-ocean-500 bg-ocean-50'
-                      : 'border-gray-200 hover:border-ocean-300'
-                  }`}
-                >
-                  <p className="text-sm font-black text-ocean-900">{option.label}</p>
-                  <p className="text-[11px] text-gray-500 font-bold mt-1">{option.hint}</p>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
         
         <div className="mt-8 text-center">
@@ -1474,11 +1480,15 @@ export default function App() {
   const [themePracticeCounts, setThemePracticeCounts] = useState<Record<SharkTheme, number>>(
     initialChildState.themePracticeCounts
   );
+  const [ttsEnabled, setTtsEnabled] = useState(initialChildState.ttsEnabled);
+  const [soundsEnabled, setSoundsEnabled] = useState(initialChildState.soundsEnabled);
   const [showSettings, setShowSettings] = useState(false);
+  const [showParentZone, setShowParentZone] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
   const [metricsStore, setMetricsStore] = useState<TraceMetricsStore>(() => loadMetricsStore());
   const traceStartRef = useRef<number>(Date.now());
+  const parentHoldTimerRef = useRef<number | null>(null);
 
   const todayKey = getDateKey();
   const todayMission = useMemo(
@@ -1501,11 +1511,81 @@ export default function App() {
     ? getDisplayLevels(metricsStore, currentItemKey)
     : DEFAULT_METRIC_LEVELS;
   const currentThemeUpgradeLevel = getThemeUpgradeLevel(themePracticeCounts[currentTheme]);
+  const todayMinutes = Math.round(todayDay?.minutesPracticed || 0);
+  const todayPracticedItems = (todayDay?.practicedItemKeys || []).map(formatPracticeItemKey);
+
+  const weakestMetricSuggestions = useMemo(() => {
+    const attemptsEntries = Object.entries(metricsStore.attempts);
+    if (attemptsEntries.length === 0) return [];
+
+    const metricLabel: Record<'follow' | 'smoothness' | 'continuity', string> = {
+      follow: '贴近',
+      smoothness: '顺滑',
+      continuity: '连贯',
+    };
+
+    const ranked = attemptsEntries
+      .map(([itemKey, attempts]) => {
+        const recent = attempts.slice(-3);
+        if (recent.length === 0) return null;
+        const avg = recent.reduce(
+          (acc, attempt) => ({
+            follow: acc.follow + attempt.levels.follow,
+            smoothness: acc.smoothness + attempt.levels.smoothness,
+            continuity: acc.continuity + attempt.levels.continuity,
+          }),
+          { follow: 0, smoothness: 0, continuity: 0 }
+        );
+        const divisor = recent.length;
+        const values = {
+          follow: avg.follow / divisor,
+          smoothness: avg.smoothness / divisor,
+          continuity: avg.continuity / divisor,
+        };
+        const weakest = (Object.keys(values) as Array<'follow' | 'smoothness' | 'continuity'>).sort(
+          (a, b) => values[a] - values[b]
+        )[0];
+        return {
+          itemKey,
+          weakestMetric: weakest,
+          weakestValue: values[weakest],
+        };
+      })
+      .filter((item): item is { itemKey: string; weakestMetric: 'follow' | 'smoothness' | 'continuity'; weakestValue: number } => Boolean(item))
+      .sort((a, b) => a.weakestValue - b.weakestValue)
+      .slice(0, 3);
+
+    return ranked.map((item) => `${formatPracticeItemKey(item.itemKey)}：优先练${metricLabel[item.weakestMetric]}`);
+  }, [metricsStore]);
+
+  const reviewReminders = useMemo(() => {
+    const intervals = new Set([1, 3, 7]);
+    return missionStore.history
+      .map((entry) => ({ entry, daysAgo: daysBetween(entry.date, todayKey) }))
+      .filter((item) => intervals.has(item.daysAgo))
+      .slice(0, 4)
+      .map((item) => `复习 ${item.daysAgo} 天前的任务：${item.entry.items.map(formatPracticeItemKey).join('、')}`);
+  }, [missionStore.history, todayKey]);
 
   const getCategoryView = (category: LearningCategory) =>
     category === 'letters' ? AppView.LETTER_LIST : category === 'numbers' ? AppView.NUMBER_LIST : AppView.SHAPE_LIST;
 
   const handleStart = () => setView(AppView.HOME);
+
+  const clearParentHold = () => {
+    if (parentHoldTimerRef.current !== null) {
+      window.clearTimeout(parentHoldTimerRef.current);
+      parentHoldTimerRef.current = null;
+    }
+  };
+
+  const startParentHold = () => {
+    clearParentHold();
+    parentHoldTimerRef.current = window.setTimeout(() => {
+      setShowParentZone(true);
+      parentHoldTimerRef.current = null;
+    }, 5000);
+  };
 
   const handleSelectCategory = (category: LearningCategory) => {
     setActiveCategory(category);
@@ -1594,6 +1674,13 @@ export default function App() {
   }, [metricsStore]);
 
   useEffect(() => {
+    setAudioPreferenceFlags({ ttsEnabled, soundsEnabled });
+    if (!ttsEnabled && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [ttsEnabled, soundsEnabled]);
+
+  useEffect(() => {
     saveChildState({
       completedLetters,
       customImages,
@@ -1601,8 +1688,19 @@ export default function App() {
       difficultyMode,
       currentTheme,
       themePracticeCounts,
+      ttsEnabled,
+      soundsEnabled,
     });
-  }, [completedLetters, customImages, sharkConfig, difficultyMode, currentTheme, themePracticeCounts]);
+  }, [
+    completedLetters,
+    customImages,
+    sharkConfig,
+    difficultyMode,
+    currentTheme,
+    themePracticeCounts,
+    ttsEnabled,
+    soundsEnabled,
+  ]);
 
   useEffect(() => {
     if (!todayDay || todayDay.ritualDone) return;
@@ -1610,6 +1708,10 @@ export default function App() {
       setShowMissionRitual(true);
     }
   }, [missionDoneCount, todayDay, todayMission.items.length]);
+
+  useEffect(() => {
+    return () => clearParentHold();
+  }, []);
 
   const handleStartMissionItem = (item: MissionItem) => {
     const sourceItems =
@@ -1642,6 +1744,17 @@ export default function App() {
           75% { transform: translateX(8px); }
         }
       `}</style>
+
+      <button
+        aria-label="Parent zone entry"
+        className="absolute top-1 right-1 z-[85] w-7 h-7 rounded-full bg-white/10 text-white/30 text-[10px] font-black select-none"
+        onPointerDown={startParentHold}
+        onPointerUp={clearParentHold}
+        onPointerLeave={clearParentHold}
+        onPointerCancel={clearParentHold}
+      >
+        •
+      </button>
       
       {view === AppView.INTRO && (
         <IntroScreen
@@ -1733,8 +1846,6 @@ export default function App() {
         themeUpgradeLevel={currentThemeUpgradeLevel}
         themePracticeCount={themePracticeCounts[currentTheme]}
         onApplyTheme={applyTheme}
-        difficultyMode={difficultyMode}
-        onChangeDifficulty={setDifficultyMode}
       />
       <MissionRitual isOpen={showMissionRitual} onHighFive={handleHighFiveRitual} />
       <ThemeChoiceModal
@@ -1746,6 +1857,21 @@ export default function App() {
           setShowThemeChoice(false);
         }}
         onClose={() => setShowThemeChoice(false)}
+      />
+      <ParentZone
+        isOpen={showParentZone}
+        onClose={() => setShowParentZone(false)}
+        ttsEnabled={ttsEnabled}
+        soundsEnabled={soundsEnabled}
+        difficultyMode={difficultyMode}
+        onToggleTts={setTtsEnabled}
+        onToggleSounds={setSoundsEnabled}
+        onChangeDifficulty={setDifficultyMode}
+        todayMinutes={todayMinutes}
+        todayItems={todayPracticedItems}
+        streak={missionStore.streak}
+        suggestions={weakestMetricSuggestions}
+        reviewReminders={reviewReminders}
       />
     </div>
   );
