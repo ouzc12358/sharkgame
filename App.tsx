@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from './constants';
 import {
   DifficultyMode,
-  LearningBlockType,
   LetterConfig,
   SharkTheme,
 } from './types';
@@ -37,7 +36,6 @@ import {
 import {
   getPracticeItemKey,
   LearningCategory,
-  missionTypeToCategory,
 } from './src/logic/tracing';
 import { setAudioPreferenceFlags, speak } from './src/logic/audio';
 import { loadChildState, saveChildState } from './src/logic/storage';
@@ -89,10 +87,11 @@ export default function App() {
   const [sharkConfig, setSharkConfig] = useState(initialChildState.sharkConfig);
   const [ttsEnabled, setTtsEnabled] = useState(initialChildState.ttsEnabled);
   const [soundsEnabled, setSoundsEnabled] = useState(initialChildState.soundsEnabled);
-  const [dressupMissionPool, setDressupMissionPool] = useState(initialChildState.dressupMissionPool);
-  const [sessionLengthTarget, setSessionLengthTarget] = useState(initialChildState.sessionLengthTarget);
-  const [rhythmGateIntensity, setRhythmGateIntensity] = useState(initialChildState.rhythmGateIntensity);
-  const [skateModuleEnabled, setSkateModuleEnabled] = useState(initialChildState.skateModuleEnabled);
+
+  const [dressupMissionPool] = useState(initialChildState.dressupMissionPool);
+  const [sessionLengthTarget] = useState(initialChildState.sessionLengthTarget);
+  const [rhythmGateIntensity] = useState(initialChildState.rhythmGateIntensity);
+  const [skateModuleEnabled] = useState(initialChildState.skateModuleEnabled);
   const [styleTokens, setStyleTokens] = useState(initialChildState.styleTokens);
 
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
@@ -106,18 +105,18 @@ export default function App() {
         todayKey,
         LETTER_ITEMS.map((item) => item.char),
         NUMBER_ITEMS.map((item) => item.char),
-        SHAPE_ITEMS.map((item) => item.char)
+        SHAPE_ITEMS.map((item) => item.char),
+        { poolMode: dressupMissionPool }
       ),
-    [todayKey]
+    [todayKey, dressupMissionPool]
   );
 
   const todayDay = missionStore.days[todayKey];
   const todayPracticedKeys = todayDay?.practicedItemKeys || [];
   const missionDoneCount = todayMission.items.filter((item) => todayPracticedKeys.includes(missionItemKey(item))).length;
+  const currentThemeUpgradeLevel = getThemeUpgradeLevel(themePracticeCounts[currentTheme]);
   const todayMinutes = Math.round(todayDay?.minutesPracticed || 0);
   const todayPracticedItems = todayPracticedKeys.map(formatPracticeItemKey);
-
-  const currentThemeUpgradeLevel = getThemeUpgradeLevel(themePracticeCounts[currentTheme]);
 
   const weakestMetricSuggestions = useMemo(() => {
     const attemptsEntries = Object.entries(metricsStore.attempts);
@@ -209,18 +208,29 @@ export default function App() {
     });
   };
 
-  const onRequestComplete = (item: LetterConfig, category: LearningCategory, minutesDelta: number) => {
+  const onRequestComplete = (item: LetterConfig) => {
     setCompletedLetters((prev) => ({ ...prev, [item.char]: true }));
     setThemePracticeCounts((prev) => ({
       ...prev,
       [currentTheme]: (prev[currentTheme] || 0) + 1,
     }));
     setStyleTokens((prev) => prev + 1);
+  };
 
+  const onCompleteMissionChallenge = (
+    missionItem: MissionItem,
+    item: LetterConfig,
+    category: LearningCategory,
+    minutesDelta: number
+  ) => {
+    onRequestComplete(item);
     const type = missionTypeForCategory(category);
-    const missionItem = todayMission.items.find((entry) => entry.char === item.char && entry.type === type);
-    if (missionItem) {
-      setMissionStore((prev) => addPracticedMissionItem(prev, todayKey, missionItemKey(missionItem), minutesDelta));
+    const matched =
+      todayMission.items.find((entry) => entry.char === missionItem.char && entry.type === type) ||
+      todayMission.items.find((entry) => entry.char === item.char && entry.type === type);
+
+    if (matched) {
+      setMissionStore((prev) => addPracticedMissionItem(prev, todayKey, missionItemKey(matched), minutesDelta));
     }
   };
 
@@ -308,7 +318,7 @@ export default function App() {
           themeUpgradeLevel={currentThemeUpgradeLevel}
           onBack={() => setRoute('home')}
           onOpenSettings={() => setShowSettings(true)}
-          onRequestComplete={onRequestComplete}
+          onRequestComplete={(item, _category, _minutesDelta) => onRequestComplete(item)}
           onRequestAttempt={onRequestAttempt}
           getProgressLevels={getProgressLevels}
           onUpdateImage={handleUpdateImage}
@@ -327,7 +337,7 @@ export default function App() {
           themeUpgradeLevel={currentThemeUpgradeLevel}
           onBack={() => setRoute('home')}
           onOpenSettings={() => setShowSettings(true)}
-          onRequestComplete={onRequestComplete}
+          onRequestComplete={(item, _category, _minutesDelta) => onRequestComplete(item)}
           onRequestAttempt={onRequestAttempt}
           getProgressLevels={getProgressLevels}
           onUpdateImage={handleUpdateImage}
@@ -346,7 +356,7 @@ export default function App() {
           themeUpgradeLevel={currentThemeUpgradeLevel}
           onBack={() => setRoute('home')}
           onOpenSettings={() => setShowSettings(true)}
-          onRequestComplete={onRequestComplete}
+          onRequestComplete={(item, _category, _minutesDelta) => onRequestComplete(item)}
           onRequestAttempt={onRequestAttempt}
           getProgressLevels={getProgressLevels}
           onUpdateImage={handleUpdateImage}
@@ -358,18 +368,24 @@ export default function App() {
       return (
         <DressUpAdventure
           mission={todayMission}
-          practicedCount={missionDoneCount}
-          totalCount={todayMission.items.length}
+          practicedItemKeys={todayPracticedKeys}
           onBack={() => setRoute('home')}
           onOpenSettings={() => setShowSettings(true)}
+          onNarrateStory={() => speak(todayMission.story, 'zh-CN')}
+          onCompleteChallenge={onCompleteMissionChallenge}
+          onAttemptChallenge={onRequestAttempt}
+          getProgressLevels={getProgressLevels}
+          findConfigByMissionItem={findConfigByMissionItem}
           sharkConfig={sharkConfig}
           theme={currentTheme}
           themeUpgradeLevel={currentThemeUpgradeLevel}
-          onStartNode={() => {
-            const nextItem = todayMission.items.find((item) => !todayPracticedKeys.includes(missionItemKey(item))) || todayMission.items[0];
-            const category = missionTypeToCategory(nextItem.type);
-            setRoute(category as Route);
-          }}
+          customImages={customImages}
+          onUpdateImage={handleUpdateImage}
+          difficultyMode={difficultyMode}
+          streak={missionStore.streak}
+          diaryStickers={missionStore.history.map((entry) => entry.sticker).slice(0, 6).reverse()}
+          sessionLengthTarget={sessionLengthTarget}
+          styleTokens={styleTokens}
         />
       );
     }
@@ -463,6 +479,7 @@ export default function App() {
         suggestions={weakestMetricSuggestions}
         reviewReminders={reviewReminders}
       />
+
     </div>
   );
 }

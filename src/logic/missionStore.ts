@@ -59,7 +59,26 @@ export const ensureMissionDay = (
   dateKey: string,
   mission: DailyMission
 ): MissionStoreState => {
-  if (store.days[dateKey]) return store;
+  const existing = store.days[dateKey];
+  if (existing) {
+    if (
+      existing.mission.poolMode !== mission.poolMode &&
+      existing.practicedItemKeys.length === 0 &&
+      !existing.completed
+    ) {
+      return {
+        ...store,
+        days: {
+          ...store.days,
+          [dateKey]: {
+            ...existing,
+            mission,
+          },
+        },
+      };
+    }
+    return store;
+  }
   return {
     ...store,
     days: {

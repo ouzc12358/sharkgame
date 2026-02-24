@@ -1,3 +1,5 @@
+import { DressupMissionPoolMode } from '../../types';
+
 export type MissionItemType = 'letter' | 'number' | 'shape';
 
 export interface MissionItem {
@@ -11,6 +13,7 @@ export interface DailyMission {
   story: string;
   items: MissionItem[];
   sticker: string;
+  poolMode: DressupMissionPoolMode;
 }
 
 const STORY_TEMPLATES = [
@@ -67,23 +70,38 @@ export const buildDailyMission = (
   dateKey: string,
   letterChars: string[],
   numberChars: string[],
-  shapeChars: string[] = []
+  shapeChars: string[] = [],
+  options?: { poolMode?: DressupMissionPoolMode }
 ): DailyMission => {
   const rnd = createSeededRandom(hashSeed(dateKey));
-  const shapeCount = shapeChars.length > 0 && rnd() > 0.45 ? 1 : 0;
-  const remaining = 3 - shapeCount;
-  const letterCount = remaining === 3 ? (rnd() > 0.5 ? 2 : 1) : rnd() > 0.55 ? 1 : 0;
-  const numberCount = Math.max(0, remaining - letterCount);
+  const poolMode = options?.poolMode || 'mixed';
+  let items: MissionItem[] = [];
 
-  const letters = pickUnique(letterChars, letterCount, rnd);
-  const numbers = pickUnique(numberChars, numberCount, rnd);
-  const shapes = pickUnique(shapeChars, shapeCount, rnd);
+  if (poolMode === 'letters') {
+    const picks = pickUnique(letterChars, 3, rnd);
+    items = picks.map((char, idx) => ({ id: `L${idx}-${char}`, type: 'letter' as const, char }));
+  } else if (poolMode === 'numbers') {
+    const picks = pickUnique(numberChars, 3, rnd);
+    items = picks.map((char, idx) => ({ id: `N${idx}-${char}`, type: 'number' as const, char }));
+  } else if (poolMode === 'shapes') {
+    const picks = pickUnique(shapeChars, 3, rnd);
+    items = picks.map((char, idx) => ({ id: `S${idx}-${char}`, type: 'shape' as const, char }));
+  } else {
+    const shapeCount = shapeChars.length > 0 && rnd() > 0.45 ? 1 : 0;
+    const remaining = 3 - shapeCount;
+    const letterCount = remaining === 3 ? (rnd() > 0.5 ? 2 : 1) : rnd() > 0.55 ? 1 : 0;
+    const numberCount = Math.max(0, remaining - letterCount);
 
-  const items: MissionItem[] = [
-    ...letters.map((char, idx) => ({ id: `L${idx}-${char}`, type: 'letter' as const, char })),
-    ...numbers.map((char, idx) => ({ id: `N${idx}-${char}`, type: 'number' as const, char })),
-    ...shapes.map((char, idx) => ({ id: `S${idx}-${char}`, type: 'shape' as const, char })),
-  ];
+    const letters = pickUnique(letterChars, letterCount, rnd);
+    const numbers = pickUnique(numberChars, numberCount, rnd);
+    const shapes = pickUnique(shapeChars, shapeCount, rnd);
+
+    items = [
+      ...letters.map((char, idx) => ({ id: `L${idx}-${char}`, type: 'letter' as const, char })),
+      ...numbers.map((char, idx) => ({ id: `N${idx}-${char}`, type: 'number' as const, char })),
+      ...shapes.map((char, idx) => ({ id: `S${idx}-${char}`, type: 'shape' as const, char })),
+    ];
+  }
 
   // Small deterministic shuffle to avoid same order feeling.
   for (let i = items.length - 1; i > 0; i--) {
@@ -99,5 +117,6 @@ export const buildDailyMission = (
     story,
     items,
     sticker,
+    poolMode,
   };
 };
