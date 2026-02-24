@@ -23,7 +23,7 @@ export enum AppView {
 export type LetterProgress = Record<string, boolean>; // char -> isCompleted
 
 export type SharkColor = 'blue' | 'pink' | 'green' | 'purple' | 'orange' | 'teal' | 'yellow' | 'coral';
-export type SharkAccessory = 'none' | 'hat' | 'glasses' | 'bowtie' | 'crown' | 'headphones' | 'scarf';
+export type SharkAccessory = 'none' | 'hat' | 'glasses' | 'bowtie' | 'crown' | 'headphones' | 'scarf' | 'redBag' | 'greenBag';
 
 export interface SharkConfig {
   color: SharkColor;

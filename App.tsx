@@ -164,6 +164,7 @@ const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: 
 
 const CORAL_COLOR: SharkColor = 'coral';
 const SHARK_COLOR_OPTIONS: SharkColor[] = ['blue', 'pink', 'green', 'purple', 'orange', 'teal', 'yellow', CORAL_COLOR];
+const LOCKED_ACCESSORIES = new Set<SharkAccessory>(['redBag', 'greenBag']);
 const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: string }> = [
   { id: 'none', label: '无', icon: '🚫' },
   { id: 'hat', label: '帽子', icon: '🎩' },
@@ -172,6 +173,8 @@ const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: 
   { id: 'crown', label: '皇冠', icon: '👑' },
   { id: 'headphones', label: '耳机', icon: '🎧' },
   { id: 'scarf', label: '围巾', icon: '🧣' },
+  { id: 'redBag', label: '红袋', icon: '🎒' },
+  { id: 'greenBag', label: '绿袋', icon: '🟢' },
 ];
 
 // --- Components ---
@@ -261,6 +264,22 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
           <g transform="translate(72, 108) rotate(6)">
             <path d="M -28 -6 Q -8 -14 12 -8 Q 24 -4 30 4 Q 20 16 -4 18 Q -20 18 -30 8 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
             <path d="M 20 10 L 30 34 L 14 28 L 10 45 L 2 24 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="2" />
+          </g>
+        )}
+        {accessory === 'redBag' && (
+          <g transform="translate(98, 95) rotate(8)">
+            <path d="M -8 -6 Q 5 -16 18 -6" fill="none" stroke="#9f1239" strokeWidth="3" strokeLinecap="round" />
+            <rect x="-14" y="-6" width="34" height="28" rx="6" fill="#f43f5e" stroke="#9f1239" strokeWidth="2.5" />
+            <rect x="-10" y="-2" width="26" height="8" rx="3" fill="#fb7185" opacity="0.75" />
+            <circle cx="3" cy="9" r="2" fill="#881337" />
+          </g>
+        )}
+        {accessory === 'greenBag' && (
+          <g transform="translate(98, 95) rotate(8)">
+            <path d="M -8 -6 Q 5 -16 18 -6" fill="none" stroke="#166534" strokeWidth="3" strokeLinecap="round" />
+            <rect x="-14" y="-6" width="34" height="28" rx="6" fill="#22c55e" stroke="#166534" strokeWidth="2.5" />
+            <rect x="-10" y="-2" width="26" height="8" rx="3" fill="#4ade80" opacity="0.7" />
+            <circle cx="3" cy="9" r="2" fill="#14532d" />
           </g>
         )}
       </g>
@@ -362,17 +381,28 @@ const SettingsModal: React.FC<{
           <div>
             <h3 className="text-lg font-bold text-gray-700 mb-3">装饰 (Accessory)</h3>
             <div className="grid grid-cols-4 gap-3">
-              {SHARK_ACCESSORY_OPTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onChange({ ...config, accessory: item.id })}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'}`}
-                >
-                  <span className="text-2xl mb-1">{item.icon}</span>
-                  <span className="text-xs font-bold text-gray-600">{item.label}</span>
-                </button>
-              ))}
+              {SHARK_ACCESSORY_OPTIONS.map((item) => {
+                const isLocked = LOCKED_ACCESSORIES.has(item.id) && !isCoralUnlocked;
+                return (
+                  <button
+                    key={item.id}
+                    disabled={isLocked}
+                    title={isLocked ? '写完全部字母或全部数字可解锁袋子装饰' : item.label}
+                    onClick={() => onChange({ ...config, accessory: item.id })}
+                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${isLocked ? 'opacity-45 cursor-not-allowed' : ''} ${config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'}`}
+                  >
+                    <span className="text-2xl mb-1">{item.icon}</span>
+                    <span className="text-xs font-bold text-gray-600">{item.label}</span>
+                    {isLocked && (
+                      <span className="absolute top-1 right-1 text-xs">🔒</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            {!isCoralUnlocked && (
+              <p className="text-xs text-gray-500 mt-2">红袋/绿袋需完成全部字母或全部数字后解锁</p>
+            )}
           </div>
         </div>
         
@@ -729,12 +759,12 @@ const CharacterGridView: React.FC<{
 }> = ({ title, items, progress, customImages, onSelectLetter, onBack, onOpenSettings }) => {
   return (
     <div className="h-full bg-ocean-500 overflow-y-auto">
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
-        <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
+      <div className="max-w-7xl mx-auto p-3 md:p-5 lg:p-6">
+        <div className="flex justify-between items-center mb-5 md:mb-6 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
           <button onClick={onBack} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
             🔙
           </button>
-          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">{title}</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{title}</h1>
           <button
             onClick={onOpenSettings}
             className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
@@ -743,7 +773,7 @@ const CharacterGridView: React.FC<{
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 pb-10">
           {items.map((letter) => {
             const isCompleted = progress[letter.char];
             const customImg = customImages[letter.char];
@@ -753,7 +783,7 @@ const CharacterGridView: React.FC<{
                 key={letter.char}
                 onClick={() => onSelectLetter(letter)}
                 className={`
-                  relative aspect-square rounded-3xl flex flex-col items-center justify-center cursor-pointer
+                  relative aspect-square rounded-2xl md:rounded-3xl flex flex-col items-center justify-center cursor-pointer
                   transition-all duration-200 shadow-[0_6px_0_rgba(0,0,0,0.1)] active:translate-y-1 active:shadow-none
                   ${isCompleted ? 'bg-sand text-ocean-900 ring-4 ring-yellow-400' : 'bg-white text-gray-700 hover:bg-ocean-100'}
                 `}
@@ -763,23 +793,23 @@ const CharacterGridView: React.FC<{
                     e.stopPropagation();
                     speakItemPrimary(letter);
                   }}
-                  className="absolute top-2 right-2 w-10 h-10 bg-ocean-100 rounded-full flex items-center justify-center text-xl hover:bg-ocean-200 active:scale-90 transition-transform z-10"
+                  className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-8 h-8 md:w-9 md:h-9 bg-ocean-100 rounded-full flex items-center justify-center text-base md:text-lg hover:bg-ocean-200 active:scale-90 transition-transform z-10"
                 >
                   🔊
                 </button>
 
-                <span className="text-6xl md:text-7xl font-black mb-2 select-none relative z-0">
+                <span className="text-5xl md:text-6xl font-black mb-1 md:mb-2 select-none relative z-0">
                   {letter.char}
                 </span>
 
                 {customImg && (
-                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full overflow-hidden border border-gray-200">
+                  <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 w-5 h-5 md:w-6 md:h-6 rounded-full overflow-hidden border border-gray-200">
                     <img src={customImg} alt="custom" className="w-full h-full object-cover" />
                   </div>
                 )}
 
                 {isCompleted && (
-                  <div className="absolute bottom-2 right-2 text-3xl animate-bounce-gentle z-10">
+                  <div className="absolute bottom-1.5 right-1.5 md:bottom-2 md:right-2 text-2xl md:text-3xl animate-bounce-gentle z-10">
                     🦈
                   </div>
                 )}
@@ -1178,10 +1208,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isCoralUnlocked && sharkConfig.color === CORAL_COLOR) {
-      setSharkConfig((prev) => ({ ...prev, color: 'blue' }));
+    if (isCoralUnlocked) return;
+
+    const needResetColor = sharkConfig.color === CORAL_COLOR;
+    const needResetAccessory = LOCKED_ACCESSORIES.has(sharkConfig.accessory);
+
+    if (needResetColor || needResetAccessory) {
+      setSharkConfig((prev) => ({
+        ...prev,
+        color: prev.color === CORAL_COLOR ? 'blue' : prev.color,
+        accessory: LOCKED_ACCESSORIES.has(prev.accessory) ? 'none' : prev.accessory,
+      }));
     }
-  }, [isCoralUnlocked, sharkConfig.color]);
+  }, [isCoralUnlocked, sharkConfig.color, sharkConfig.accessory]);
 
   return (
     <div className="h-full w-full relative">
