@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { LETTERS } from './constants';
+import { LETTER_ITEMS, NUMBER_ITEMS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
 import { GoogleGenAI } from "@google/genai";
 
@@ -15,6 +15,30 @@ const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.5) => {
     utterance.lang = lang;
     window.speechSynthesis.speak(utterance);
   }
+};
+
+const NUMBER_ZH_MAP: Record<string, string> = {
+  '0': '零',
+  '1': '一',
+  '2': '二',
+  '3': '三',
+  '4': '四',
+  '5': '五',
+  '6': '六',
+  '7': '七',
+  '8': '八',
+  '9': '九',
+};
+
+const isNumberItem = (char: string) => /^[0-9]$/.test(char);
+
+const speakItemPrimary = (item: LetterConfig) => {
+  if (isNumberItem(item.char)) {
+    const zhNumber = NUMBER_ZH_MAP[item.char] || item.char;
+    speak(`数字${zhNumber}`, 'zh-CN');
+    return;
+  }
+  speak(item.char.toLowerCase(), 'en-US');
 };
 
 // Simple synthesizer for UI sound effects
@@ -83,8 +107,8 @@ const getStrokeGuides = (d: string) => {
   if (!d) return [];
   // Split by Move commands (M or m) to separate strokes
   const segments = d.split(/(?=[Mm])/).filter(s => s.trim().length > 0);
-  
-  return segments.map((seg, i) => {
+
+  const rawGuides = segments.map((seg, i) => {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', seg);
     
@@ -106,6 +130,24 @@ const getStrokeGuides = (d: string) => {
       angle
     };
   }).filter((g): g is { id: number, x: number, y: number, angle: number } => !!g);
+
+  // Some letters (e.g., K, Y) have multiple strokes starting from the same point.
+  // Spread overlapping bubbles so stroke order remains readable.
+  return rawGuides.map((guide, index) => {
+    const overlapping = rawGuides
+      .slice(0, index)
+      .filter((g) => dist({ x: g.x, y: g.y }, { x: guide.x, y: guide.y }) < 4).length;
+
+    if (overlapping === 0) return guide;
+
+    const radialAngle = (guide.angle + overlapping * 70) * (Math.PI / 180);
+    const offset = 7 * overlapping;
+    return {
+      ...guide,
+      x: Math.max(8, Math.min(92, guide.x + Math.cos(radialAngle) * offset)),
+      y: Math.max(8, Math.min(92, guide.y + Math.sin(radialAngle) * offset)),
+    };
+  });
 };
 
 // --- Shark Customization Data ---
@@ -114,7 +156,23 @@ const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: 
   pink: { body: '#f472b6', stroke: '#be185d', belly: '#fbcfe8', fin: '#ec4899' },
   green: { body: '#4ade80', stroke: '#15803d', belly: '#bbf7d0', fin: '#22c55e' },
   purple: { body: '#a78bfa', stroke: '#7c3aed', belly: '#ddd6fe', fin: '#8b5cf6' },
+  orange: { body: '#fb923c', stroke: '#c2410c', belly: '#fed7aa', fin: '#f97316' },
+  teal: { body: '#2dd4bf', stroke: '#0f766e', belly: '#99f6e4', fin: '#14b8a6' },
+  yellow: { body: '#facc15', stroke: '#a16207', belly: '#fef08a', fin: '#eab308' },
+  coral: { body: '#fb7185', stroke: '#be123c', belly: '#fecdd3', fin: '#f43f5e' },
 };
+
+const CORAL_COLOR: SharkColor = 'coral';
+const SHARK_COLOR_OPTIONS: SharkColor[] = ['blue', 'pink', 'green', 'purple', 'orange', 'teal', 'yellow', CORAL_COLOR];
+const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: string }> = [
+  { id: 'none', label: '无', icon: '🚫' },
+  { id: 'hat', label: '帽子', icon: '🎩' },
+  { id: 'glasses', label: '墨镜', icon: '🕶️' },
+  { id: 'bowtie', label: '领结', icon: '🎀' },
+  { id: 'crown', label: '皇冠', icon: '👑' },
+  { id: 'headphones', label: '耳机', icon: '🎧' },
+  { id: 'scarf', label: '围巾', icon: '🧣' },
+];
 
 // --- Components ---
 
@@ -181,6 +239,30 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
             <circle cx="0" cy="0" r="3" fill="#b91c1c" />
           </g>
         )}
+        {accessory === 'crown' && (
+          <g transform="translate(88, 8) rotate(-8)">
+            <path d="M 0 20 L 8 5 L 16 20 L 24 5 L 32 20 L 40 5 L 48 20 Z" fill="#facc15" stroke="#b45309" strokeWidth="2" />
+            <rect x="0" y="20" width="48" height="8" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="2" />
+            <circle cx="8" cy="5" r="2" fill="#ef4444" />
+            <circle cx="24" cy="5" r="2" fill="#60a5fa" />
+            <circle cx="40" cy="5" r="2" fill="#22c55e" />
+          </g>
+        )}
+        {accessory === 'headphones' && (
+          <g transform="translate(55, 52)">
+            <path d="M -18 5 C -18 -20 38 -20 38 5" fill="none" stroke="#1f2937" strokeWidth="5" strokeLinecap="round" />
+            <rect x="-23" y="0" width="10" height="20" rx="5" fill="#374151" />
+            <rect x="33" y="0" width="10" height="20" rx="5" fill="#374151" />
+            <rect x="-20" y="4" width="4" height="12" rx="2" fill="#93c5fd" />
+            <rect x="36" y="4" width="4" height="12" rx="2" fill="#93c5fd" />
+          </g>
+        )}
+        {accessory === 'scarf' && (
+          <g transform="translate(72, 108) rotate(6)">
+            <path d="M -28 -6 Q -8 -14 12 -8 Q 24 -4 30 4 Q 20 16 -4 18 Q -20 18 -30 8 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+            <path d="M 20 10 L 30 34 L 14 28 L 10 45 L 2 24 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="2" />
+          </g>
+        )}
       </g>
     </svg>
   );
@@ -189,7 +271,7 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
 // 2. Intro Screen
 const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> = ({ onStart, sharkConfig }) => {
   const handleStart = () => {
-    speak("欢迎来到鲨鱼字母乐园！", 'zh-CN');
+    speak("欢迎来到鲨鱼字母数字乐园！", 'zh-CN');
     onStart();
   };
 
@@ -231,8 +313,9 @@ const SettingsModal: React.FC<{
   isOpen: boolean, 
   onClose: () => void, 
   config: SharkConfig, 
-  onChange: (c: SharkConfig) => void 
-}> = ({ isOpen, onClose, config, onChange }) => {
+  onChange: (c: SharkConfig) => void,
+  isCoralUnlocked: boolean
+}> = ({ isOpen, onClose, config, onChange, isCoralUnlocked }) => {
   if (!isOpen) return null;
 
   return (
@@ -252,30 +335,37 @@ const SettingsModal: React.FC<{
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-bold text-gray-700 mb-3">颜色 (Color)</h3>
-            <div className="flex gap-4 justify-center">
-              {(['blue', 'pink', 'green', 'purple'] as SharkColor[]).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onChange({ ...config, color: c })}
-                  className={`w-12 h-12 rounded-full border-4 shadow-sm transform transition-transform active:scale-90 ${config.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: SHARK_PALETTES[c].body }}
-                />
-              ))}
+            <div className="grid grid-cols-4 gap-3 justify-items-center">
+              {SHARK_COLOR_OPTIONS.map((c) => {
+                const isLocked = c === CORAL_COLOR && !isCoralUnlocked;
+                return (
+                  <button
+                    key={c}
+                    disabled={isLocked}
+                    title={isLocked ? '写完全部字母或全部数字可解锁珊瑚色' : c}
+                    onClick={() => onChange({ ...config, color: c })}
+                    className={`relative w-12 h-12 rounded-full border-4 shadow-sm transform transition-transform ${isLocked ? 'opacity-45 cursor-not-allowed' : 'active:scale-90'} ${config.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
+                    style={{ backgroundColor: SHARK_PALETTES[c].body }}
+                  >
+                    {isLocked && (
+                      <span className="absolute inset-0 flex items-center justify-center text-lg">🔒</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            {!isCoralUnlocked && (
+              <p className="text-xs text-gray-500 mt-2">珊瑚色需完成全部字母或全部数字后解锁</p>
+            )}
           </div>
 
           <div>
             <h3 className="text-lg font-bold text-gray-700 mb-3">装饰 (Accessory)</h3>
-            <div className="flex gap-3 justify-center">
-              {[
-                { id: 'none', label: '无', icon: '🚫' },
-                { id: 'hat', label: '帽子', icon: '🎩' },
-                { id: 'glasses', label: '墨镜', icon: '🕶️' },
-                { id: 'bowtie', label: '领结', icon: '🎀' },
-              ].map((item) => (
+            <div className="grid grid-cols-4 gap-3">
+              {SHARK_ACCESSORY_OPTIONS.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => onChange({ ...config, accessory: item.id as SharkAccessory })}
+                  onClick={() => onChange({ ...config, accessory: item.id })}
                   className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'}`}
                 >
                   <span className="text-2xl mb-1">{item.icon}</span>
@@ -573,19 +663,79 @@ const ImageGenModal: React.FC<{
 };
 
 
-// 7. Home View
-const HomeView: React.FC<{ 
-  progress: LetterProgress, 
-  customImages: Record<string, string>,
-  onSelectLetter: (letter: LetterConfig) => void,
-  onOpenSettings: () => void 
-}> = ({ progress, customImages, onSelectLetter, onOpenSettings }) => {
+type LearningCategory = 'letters' | 'numbers';
+
+// 7. Category Home View
+const CategoryHomeView: React.FC<{
+  progress: LetterProgress;
+  onSelectCategory: (category: LearningCategory) => void;
+  onOpenSettings: () => void;
+}> = ({ progress, onSelectCategory, onOpenSettings }) => {
+  const lettersDone = LETTER_ITEMS.filter((item) => progress[item.char]).length;
+  const numbersDone = NUMBER_ITEMS.filter((item) => progress[item.char]).length;
+
+  return (
+    <div className="h-full bg-ocean-500 overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-4 md:p-8">
+        <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
+          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">选择学习内容</h1>
+          <button
+            onClick={onOpenSettings}
+            className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+          >
+            <span className="text-3xl">⚙️</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+          <button
+            onClick={() => onSelectCategory('letters')}
+            className="bg-white rounded-3xl p-8 text-left shadow-[0_8px_0_rgba(0,0,0,0.12)] active:translate-y-1 active:shadow-none transition-all"
+          >
+            <div className="text-6xl mb-3">🔤</div>
+            <div className="text-4xl font-black text-ocean-900 mb-2">字母学习</div>
+            <div className="text-xl font-bold text-gray-500">A - Z</div>
+            <div className="mt-4 text-lg font-bold text-ocean-700">
+              完成 {lettersDone}/{LETTER_ITEMS.length}
+            </div>
+          </button>
+
+          <button
+            onClick={() => onSelectCategory('numbers')}
+            className="bg-white rounded-3xl p-8 text-left shadow-[0_8px_0_rgba(0,0,0,0.12)] active:translate-y-1 active:shadow-none transition-all"
+          >
+            <div className="text-6xl mb-3">🔢</div>
+            <div className="text-4xl font-black text-ocean-900 mb-2">数字学习</div>
+            <div className="text-xl font-bold text-gray-500">0 - 9</div>
+            <div className="mt-4 text-lg font-bold text-ocean-700">
+              完成 {numbersDone}/{NUMBER_ITEMS.length}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 8. Character Grid View
+const CharacterGridView: React.FC<{
+  title: string;
+  items: LetterConfig[];
+  progress: LetterProgress;
+  customImages: Record<string, string>;
+  onSelectLetter: (letter: LetterConfig) => void;
+  onBack: () => void;
+  onOpenSettings: () => void;
+}> = ({ title, items, progress, customImages, onSelectLetter, onBack, onOpenSettings }) => {
   return (
     <div className="h-full bg-ocean-500 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="flex justify-between items-center mb-8 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-10 py-2">
-          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">字母和数字</h1>
-          <button 
+          <button onClick={onBack} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
+            🔙
+          </button>
+          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md">{title}</h1>
+          <button
             onClick={onOpenSettings}
             className="bg-white p-3 rounded-full shadow-lg active:scale-95 transition-transform"
           >
@@ -594,10 +744,10 @@ const HomeView: React.FC<{
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-12">
-          {LETTERS.map((letter) => {
+          {items.map((letter) => {
             const isCompleted = progress[letter.char];
             const customImg = customImages[letter.char];
-            
+
             return (
               <div
                 key={letter.char}
@@ -608,11 +758,10 @@ const HomeView: React.FC<{
                   ${isCompleted ? 'bg-sand text-ocean-900 ring-4 ring-yellow-400' : 'bg-white text-gray-700 hover:bg-ocean-100'}
                 `}
               >
-                {/* Sound Button on the card */}
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent opening the letter view
-                    speak(letter.char.toLowerCase(), 'en-US');
+                    e.stopPropagation();
+                    speakItemPrimary(letter);
                   }}
                   className="absolute top-2 right-2 w-10 h-10 bg-ocean-100 rounded-full flex items-center justify-center text-xl hover:bg-ocean-200 active:scale-90 transition-transform z-10"
                 >
@@ -622,8 +771,7 @@ const HomeView: React.FC<{
                 <span className="text-6xl md:text-7xl font-black mb-2 select-none relative z-0">
                   {letter.char}
                 </span>
-                
-                {/* Small indicator if custom image exists */}
+
                 {customImg && (
                   <div className="absolute top-2 left-2 w-6 h-6 rounded-full overflow-hidden border border-gray-200">
                     <img src={customImg} alt="custom" className="w-full h-full object-cover" />
@@ -644,7 +792,7 @@ const HomeView: React.FC<{
   );
 };
 
-// 8. Letter Tracing View
+// 9. Letter Tracing View
 const LetterView: React.FC<{ 
   letter: LetterConfig, 
   onBack: () => void, 
@@ -675,7 +823,7 @@ const LetterView: React.FC<{
     setIsDemonstrating(true);
     
     // Audio Sequence: Letter -> Wait -> Word
-    speak(letter.char.toLowerCase(), 'en-US'); // Say letter
+    speakItemPrimary(letter);
     const wordTimer = setTimeout(() => {
       speak(letter.word, 'en-US'); // Say word
     }, 1500);
@@ -694,7 +842,7 @@ const LetterView: React.FC<{
     setCurrentStroke([]);
     setAverageError(0);
     setIsDemonstrating(true);
-    speak(letter.char.toLowerCase(), 'en-US');
+    speakItemPrimary(letter);
     
     setTimeout(() => {
       setIsDemonstrating(false);
@@ -981,19 +1129,32 @@ const LetterView: React.FC<{
   );
 };
 
-// 9. Main App
+// 10. Main App
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.INTRO);
+  const [activeCategory, setActiveCategory] = useState<LearningCategory>('letters');
   const [currentLetter, setCurrentLetter] = useState<LetterConfig | null>(null);
   const [completedLetters, setCompletedLetters] = useState<LetterProgress>({});
   const [showReward, setShowReward] = useState(false);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>({ color: 'blue', accessory: 'none' });
   const [showSettings, setShowSettings] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
+  const lettersDone = LETTER_ITEMS.filter((item) => completedLetters[item.char]).length;
+  const numbersDone = NUMBER_ITEMS.filter((item) => completedLetters[item.char]).length;
+  const isCoralUnlocked = lettersDone === LETTER_ITEMS.length || numbersDone === NUMBER_ITEMS.length;
+
+  const getCategoryView = (category: LearningCategory) =>
+    category === 'letters' ? AppView.LETTER_LIST : AppView.NUMBER_LIST;
 
   const handleStart = () => setView(AppView.HOME);
 
-  const handleSelectLetter = (letter: LetterConfig) => {
+  const handleSelectCategory = (category: LearningCategory) => {
+    setActiveCategory(category);
+    setView(getCategoryView(category));
+  };
+
+  const handleSelectLetter = (letter: LetterConfig, category: LearningCategory) => {
+    setActiveCategory(category);
     setCurrentLetter(letter);
     setView(AppView.LETTER);
   };
@@ -1004,7 +1165,7 @@ export default function App() {
       setShowReward(true);
       setTimeout(() => {
         setShowReward(false);
-        setView(AppView.HOME);
+        setView(getCategoryView(activeCategory));
         setCurrentLetter(null);
       }, 4000);
     }
@@ -1015,6 +1176,12 @@ export default function App() {
        setCustomImages(prev => ({ ...prev, [currentLetter.char]: img }));
      }
   };
+
+  useEffect(() => {
+    if (!isCoralUnlocked && sharkConfig.color === CORAL_COLOR) {
+      setSharkConfig((prev) => ({ ...prev, color: 'blue' }));
+    }
+  }, [isCoralUnlocked, sharkConfig.color]);
 
   return (
     <div className="h-full w-full relative">
@@ -1034,10 +1201,33 @@ export default function App() {
       )}
 
       {view === AppView.HOME && (
-        <HomeView 
+        <CategoryHomeView
           progress={completedLetters} 
+          onSelectCategory={handleSelectCategory}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+      )}
+
+      {view === AppView.LETTER_LIST && (
+        <CharacterGridView
+          title="字母学习"
+          items={LETTER_ITEMS}
+          progress={completedLetters}
           customImages={customImages}
-          onSelectLetter={handleSelectLetter} 
+          onSelectLetter={(letter) => handleSelectLetter(letter, 'letters')}
+          onBack={() => setView(AppView.HOME)}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+      )}
+
+      {view === AppView.NUMBER_LIST && (
+        <CharacterGridView
+          title="数字学习"
+          items={NUMBER_ITEMS}
+          progress={completedLetters}
+          customImages={customImages}
+          onSelectLetter={(letter) => handleSelectLetter(letter, 'numbers')}
+          onBack={() => setView(AppView.HOME)}
           onOpenSettings={() => setShowSettings(true)}
         />
       )}
@@ -1045,7 +1235,7 @@ export default function App() {
       {view === AppView.LETTER && currentLetter && (
         <LetterView 
           letter={currentLetter} 
-          onBack={() => setView(AppView.HOME)} 
+          onBack={() => setView(getCategoryView(activeCategory))}
           onComplete={handleComplete}
           sharkConfig={sharkConfig}
           customImage={customImages[currentLetter.char]}
@@ -1062,6 +1252,7 @@ export default function App() {
         onClose={() => setShowSettings(false)}
         config={sharkConfig}
         onChange={setSharkConfig}
+        isCoralUnlocked={isCoralUnlocked}
       />
     </div>
   );
