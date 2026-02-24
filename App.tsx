@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LETTER_ITEMS, NUMBER_ITEMS } from './constants';
 import { LetterConfig, Point, AppView, LetterProgress, SharkConfig, SharkColor, SharkAccessory } from './types';
-import { GoogleGenAI } from "@google/genai";
 
 // --- Sound Utilities ---
 // Defaults to Chinese (zh-CN) for prompts, allows en-US for letters.
@@ -550,7 +549,16 @@ const SharkReward: React.FC<{ sharkConfig: SharkConfig }> = ({ sharkConfig }) =>
   );
 };
 
-// 6. Image Generation Modal (Gemini)
+const LOCAL_STICKER_OPTIONS: Array<{ id: string; label: string; src: string }> = [
+  { id: 'apple', label: '苹果', src: '/stickers/apple.svg' },
+  { id: 'starfish', label: '海星', src: '/stickers/starfish.svg' },
+  { id: 'fish', label: '小鱼', src: '/stickers/fish.svg' },
+  { id: 'shell', label: '贝壳', src: '/stickers/shell.svg' },
+  { id: 'octopus', label: '章鱼', src: '/stickers/octopus.svg' },
+  { id: 'rainbow', label: '彩虹', src: '/stickers/rainbow.svg' },
+];
+
+// 6. Local Sticker Picker Modal
 const ImageGenModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -558,153 +566,56 @@ const ImageGenModal: React.FC<{
   currentImage: string | null;
   onSave: (img: string) => void;
 }> = ({ isOpen, onClose, letter, currentImage, onSave }) => {
-  const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
-  
-  // Default prompt designed for generation
-  const defaultPrompt = `Cute cartoon ${letter.word}, 3d render, vivid colors, children's book style illustration, white background`;
+  const [selected, setSelected] = useState<string>(currentImage || LOCAL_STICKER_OPTIONS[0].src);
 
-  const handleGenerate = async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      
-      // Enforce style consistency for children's app
-      const styleSuffix = ", vivid children's book illustration style, 3d render, cute, colorful";
-      let activePrompt = prompt.trim();
-      
-      if (!activePrompt) {
-        activePrompt = defaultPrompt; 
-      } else {
-        // If user provides a prompt (e.g., "Add sunglasses"), we append style instructions
-        // to ensure the output remains appropriate for the app's theme.
-        activePrompt = `${activePrompt} ${styleSuffix}`;
-      }
-      
-      let response;
-      
-      // If we have an existing custom image, we edit it
-      if (currentImage) {
-         // Image-to-Image / Editing
-         const base64Data = currentImage.split(',')[1];
-         response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: 'image/png', 
-                    data: base64Data
-                  }
-                },
-                { text: activePrompt }
-              ]
-            }
-         });
-      } else {
-         // Text-to-Image Generation
-         // Since we can't easily send the emoji as an image without rasterizing,
-         // we just generate a new image from the prompt for the first time.
-         response = await ai.models.generateContent({
-           model: 'gemini-2.5-flash-image',
-           contents: {
-             parts: [{ text: activePrompt }]
-           }
-         });
-      }
-
-      // Extract image from response
-      let foundImage = false;
-      if (response && response.candidates && response.candidates[0].content.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            const base64String = part.inlineData.data;
-            const url = `data:image/png;base64,${base64String}`;
-            setGeneratedPreview(url);
-            foundImage = true;
-            break;
-          }
-        }
-      }
-      
-      if (!foundImage) {
-        setError("无法生成图片，请重试 (Could not generate image)");
-      }
-
-    } catch (e: any) {
-      console.error(e);
-      setError("Error: " + (e.message || "Unknown error"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelected(currentImage || LOCAL_STICKER_OPTIONS[0].src);
+  }, [isOpen, currentImage]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-black text-ocean-900">魔法画笔 (Magic Art)</h2>
+          <h2 className="text-2xl font-black text-ocean-900">贴纸盒</h2>
           <button onClick={onClose} className="text-2xl bg-gray-100 rounded-full w-10 h-10 hover:bg-gray-200">✕</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex flex-col items-center mb-6">
-             <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden mb-4 shadow-inner relative">
-                {generatedPreview ? (
-                  <img src={generatedPreview} alt="Generated" className="w-full h-full object-cover" />
-                ) : currentImage ? (
-                  <img src={currentImage} alt="Current" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-8xl">{letter.emoji}</span>
-                )}
-             </div>
-             {isLoading && <div className="text-ocean-500 font-bold animate-pulse">正在施展魔法... (Generating...)</div>}
-             {error && <div className="text-red-500 text-sm font-bold">{error}</div>}
+        <div className="flex flex-col items-center mb-5">
+          <div className="w-44 h-44 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden mb-3 shadow-inner">
+            {selected ? (
+              <img src={selected} alt={`${letter.word} sticker`} className="w-full h-full object-contain p-3" />
+            ) : (
+              <span className="text-8xl">{letter.emoji}</span>
+            )}
           </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 font-bold mb-2">
-              {currentImage ? "描述你想怎么修改 (Edit):" : "描述你想画什么 (Create):"}
-            </label>
-            <textarea 
-              className="w-full p-3 border-2 border-ocean-200 rounded-xl focus:border-ocean-500 focus:outline-none"
-              rows={3}
-              placeholder={currentImage ? "Add a hat, Remove background..." : defaultPrompt}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Gemini will enhance your prompt to make it vivid and cute!
-            </p>
-          </div>
+          <p className="text-sm font-bold text-gray-500">给 {letter.word} 选一个贴纸吧</p>
         </div>
 
-        <div className="flex gap-4 mt-4">
-          <button 
-            onClick={handleGenerate}
-            disabled={isLoading}
-            className={`flex-1 py-3 rounded-xl font-black text-white shadow-md transition-transform active:scale-95
-              ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-ocean-500 hover:bg-ocean-600'}
-            `}
-          >
-            {currentImage ? "修改图片 (Update)" : "生成图片 (Create)"}
-          </button>
-          
-          {generatedPreview && (
-            <button 
-              onClick={() => { onSave(generatedPreview); onClose(); }}
-              className="flex-1 bg-green-500 text-white py-3 rounded-xl font-black hover:bg-green-600 shadow-md active:scale-95"
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {LOCAL_STICKER_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => setSelected(option.src)}
+              className={`rounded-xl border-2 p-2 bg-white transition-all active:scale-95 ${selected === option.src ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'}`}
             >
-              保存 (Save)
+              <img src={option.src} alt={option.label} className="w-full h-16 object-contain" />
+              <span className="text-xs font-bold text-gray-600">{option.label}</span>
             </button>
-          )}
+          ))}
         </div>
+
+        <button
+          onClick={() => {
+            onSave(selected);
+            onClose();
+          }}
+          className="w-full bg-ocean-500 text-white py-3 rounded-xl font-black hover:bg-ocean-600 shadow-md active:scale-95"
+        >
+          使用贴纸
+        </button>
       </div>
     </div>
   );
