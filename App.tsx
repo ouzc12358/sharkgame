@@ -10,6 +10,7 @@ import {
   SharkColor,
   SharkAccessory,
   DifficultyMode,
+  SharkTheme,
 } from './types';
 import MissionFlow from './src/components/MissionFlow';
 import MissionRitual from './src/components/MissionRitual';
@@ -206,9 +207,7 @@ const SHARK_PALETTES: Record<SharkColor, { body: string, stroke: string, belly: 
   coral: { body: '#fda4af', stroke: '#fb7185', belly: '#ffe4e6', fin: '#fbcfe8' },
 };
 
-const CORAL_COLOR: SharkColor = 'coral';
-const SHARK_COLOR_OPTIONS: SharkColor[] = ['blue', 'pink', 'green', 'purple', 'orange', 'teal', 'yellow', CORAL_COLOR];
-const LOCKED_ACCESSORIES = new Set<SharkAccessory>(['redBag', 'greenBag', 'blueBag', 'lightCoralBag']);
+const SHARK_COLOR_OPTIONS: SharkColor[] = ['blue', 'pink', 'green', 'purple', 'orange', 'teal', 'yellow', 'coral'];
 const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: string }> = [
   { id: 'none', label: '无', icon: '🚫' },
   { id: 'hat', label: '帽子', icon: '🎩' },
@@ -223,6 +222,18 @@ const SHARK_ACCESSORY_OPTIONS: Array<{ id: SharkAccessory; label: string; icon: 
   { id: 'lightCoralBag', label: '浅珊瑚袋', icon: '🩷' },
 ];
 
+const SHARK_THEME_PRESETS: Record<
+  SharkTheme,
+  { label: string; icon: string; color: SharkColor; accessory: SharkAccessory; summary: string }
+> = {
+  space: { label: '太空鲨', icon: '🚀', color: 'purple', accessory: 'crown', summary: '星光、闪耀、漂浮' },
+  fire: { label: '火焰鲨', icon: '🔥', color: 'orange', accessory: 'scarf', summary: '暖色、速度、活力' },
+  diver: { label: '潜水鲨', icon: '🤿', color: 'teal', accessory: 'glasses', summary: '海泡泡、探索、沉浸' },
+};
+
+const SHARK_THEME_ORDER: SharkTheme[] = ['space', 'fire', 'diver'];
+const getThemeUpgradeLevel = (practiceCount: number) => Math.max(0, Math.min(3, Math.floor(practiceCount / 4)));
+
 const CHILD_STATE_STORAGE_KEY = 'sharkgame.childState.v1';
 
 interface ChildStateSnapshot {
@@ -230,14 +241,21 @@ interface ChildStateSnapshot {
   customImages: Record<string, string>;
   sharkConfig: SharkConfig;
   difficultyMode: DifficultyMode;
+  currentTheme: SharkTheme;
+  themePracticeCounts: Record<SharkTheme, number>;
 }
 
 const loadChildState = (): ChildStateSnapshot => {
   const defaults: ChildStateSnapshot = {
     completedLetters: {},
     customImages: {},
-    sharkConfig: { color: 'blue', accessory: 'none' },
+    sharkConfig: {
+      color: SHARK_THEME_PRESETS.diver.color,
+      accessory: SHARK_THEME_PRESETS.diver.accessory,
+    },
     difficultyMode: 'guide',
+    currentTheme: 'diver',
+    themePracticeCounts: { space: 0, fire: 0, diver: 0 },
   };
   try {
     const raw = localStorage.getItem(CHILD_STATE_STORAGE_KEY);
@@ -248,11 +266,26 @@ const loadChildState = (): ChildStateSnapshot => {
       parsedMode === 'guide' || parsedMode === 'practice' || parsedMode === 'challenge'
         ? parsedMode
         : 'guide';
+    const parsedTheme = parsed.currentTheme;
+    const safeTheme: SharkTheme =
+      parsedTheme === 'space' || parsedTheme === 'fire' || parsedTheme === 'diver' ? parsedTheme : 'diver';
+    const parsedCounts = parsed.themePracticeCounts;
+    const safeCounts: Record<SharkTheme, number> = {
+      space: Math.max(0, parsedCounts?.space || 0),
+      fire: Math.max(0, parsedCounts?.fire || 0),
+      diver: Math.max(0, parsedCounts?.diver || 0),
+    };
     return {
       completedLetters: parsed.completedLetters || {},
       customImages: parsed.customImages || {},
-      sharkConfig: parsed.sharkConfig || defaults.sharkConfig,
+      sharkConfig:
+        parsed.sharkConfig || {
+          color: SHARK_THEME_PRESETS[safeTheme].color,
+          accessory: SHARK_THEME_PRESETS[safeTheme].accessory,
+        },
       difficultyMode: safeMode,
+      currentTheme: safeTheme,
+      themePracticeCounts: safeCounts,
     };
   } catch {
     return defaults;
@@ -281,7 +314,12 @@ const DIFFICULTY_OPTIONS: Array<{ id: DifficultyMode; label: string; hint: strin
 // --- Components ---
 
 // 1. Friendly Shark SVG Component
-const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({ className, config }) => {
+const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig, theme?: SharkTheme, upgradeLevel?: number }> = ({
+  className,
+  config,
+  theme = 'diver',
+  upgradeLevel = 0,
+}) => {
   const { color, accessory } = config || { color: 'blue', accessory: 'none' };
   const palette = SHARK_PALETTES[color];
 
@@ -319,6 +357,43 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
         {/* Mouth */}
         <path d="M 40 95 Q 60 110 80 95" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" />
         <path d="M 75 102 L 78 107 L 81 100" fill="white" stroke="none" />
+
+        {theme === 'space' && (
+          <>
+            <circle cx="20" cy="28" r="2.2" fill="#e0e7ff" />
+            <circle cx="38" cy="18" r="1.6" fill="#c4b5fd" />
+            <circle cx="26" cy="40" r="1.5" fill="#fdf2f8" />
+          </>
+        )}
+        {theme === 'fire' && (
+          <g opacity="0.78">
+            <path d="M 168 72 Q 178 62 188 70 Q 182 70 178 80 Z" fill="#fb923c" />
+            <path d="M 170 88 Q 180 78 188 88 Q 182 88 176 98 Z" fill="#f97316" />
+          </g>
+        )}
+        {theme === 'diver' && (
+          <g opacity="0.75">
+            <circle cx="22" cy="24" r="3.5" fill="#67e8f9" />
+            <circle cx="14" cy="34" r="2.5" fill="#a5f3fc" />
+          </g>
+        )}
+
+        {upgradeLevel >= 1 && (
+          <path d="M 42 58 Q 88 44 132 62" fill="none" stroke="white" strokeOpacity="0.35" strokeWidth="4" strokeLinecap="round" />
+        )}
+        {upgradeLevel >= 2 && (
+          <g opacity="0.8">
+            <circle cx="175" cy="54" r="3" fill="#bae6fd" />
+            <circle cx="182" cy="68" r="2.2" fill="#dbeafe" />
+            <circle cx="174" cy="83" r="2.4" fill="#bfdbfe" />
+          </g>
+        )}
+        {upgradeLevel >= 3 && (
+          <g transform="translate(150, 42)">
+            <circle r="9" fill="#fef08a" opacity="0.9" />
+            <path d="M -5 0 L 5 0 M 0 -5 L 0 5" stroke="#a16207" strokeWidth="2" strokeLinecap="round" />
+          </g>
+        )}
         
         {/* Accessories */}
         {accessory === 'hat' && (
@@ -405,7 +480,12 @@ const FriendlyShark: React.FC<{ className?: string, config?: SharkConfig }> = ({
 };
 
 // 2. Intro Screen
-const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> = ({ onStart, sharkConfig }) => {
+const IntroScreen: React.FC<{
+  onStart: () => void,
+  sharkConfig: SharkConfig,
+  theme: SharkTheme,
+  themeUpgradeLevel: number
+}> = ({ onStart, sharkConfig, theme, themeUpgradeLevel }) => {
   const handleStart = () => {
     speak("欢迎来到鲨鱼字母数字乐园！", 'zh-CN');
     onStart();
@@ -422,7 +502,7 @@ const IntroScreen: React.FC<{ onStart: () => void, sharkConfig: SharkConfig }> =
 
       <div className="z-10 flex flex-col items-center text-center p-4">
         <div className="w-64 h-48 mb-4 cursor-pointer transform transition-transform active:scale-95 flex items-center justify-center" onClick={() => speak("我是鲨鱼宝宝！", 'zh-CN')}>
-          <FriendlyShark className="w-full h-full drop-shadow-2xl" config={sharkConfig} />
+          <FriendlyShark className="w-full h-full drop-shadow-2xl" config={sharkConfig} theme={theme} upgradeLevel={themeUpgradeLevel} />
         </div>
         
         <h1 className="text-5xl md:text-7xl font-black text-white drop-shadow-lg mb-4 tracking-wide">
@@ -450,10 +530,24 @@ const SettingsModal: React.FC<{
   onClose: () => void, 
   config: SharkConfig, 
   onChange: (c: SharkConfig) => void,
-  isCoralUnlocked: boolean,
+  theme: SharkTheme,
+  themeUpgradeLevel: number,
+  themePracticeCount: number,
+  onApplyTheme: (theme: SharkTheme) => void,
   difficultyMode: DifficultyMode,
   onChangeDifficulty: (mode: DifficultyMode) => void
-}> = ({ isOpen, onClose, config, onChange, isCoralUnlocked, difficultyMode, onChangeDifficulty }) => {
+}> = ({
+  isOpen,
+  onClose,
+  config,
+  onChange,
+  theme,
+  themeUpgradeLevel,
+  themePracticeCount,
+  onApplyTheme,
+  difficultyMode,
+  onChangeDifficulty,
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -466,62 +560,72 @@ const SettingsModal: React.FC<{
 
         <div className="flex justify-center mb-8 bg-ocean-100 rounded-2xl p-4">
           <div className="w-48 h-32">
-            <FriendlyShark className="w-full h-full" config={config} />
+            <FriendlyShark className="w-full h-full" config={config} theme={theme} upgradeLevel={themeUpgradeLevel} />
           </div>
         </div>
 
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-700 mb-3">颜色 (Color)</h3>
-            <div className="grid grid-cols-4 gap-3 justify-items-center">
-              {SHARK_COLOR_OPTIONS.map((c) => {
-                const isLocked = c === CORAL_COLOR && !isCoralUnlocked;
+            <h3 className="text-lg font-bold text-gray-700 mb-3">主题表达 (Theme)</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {SHARK_THEME_ORDER.map((id) => {
+                const preset = SHARK_THEME_PRESETS[id];
                 return (
                   <button
-                    key={c}
-                    disabled={isLocked}
-                    title={isLocked ? '写完全部字母或全部数字可解锁珊瑚色' : c}
-                    onClick={() => onChange({ ...config, color: c })}
-                    className={`relative w-12 h-12 rounded-full border-4 shadow-sm transform transition-transform ${isLocked ? 'opacity-45 cursor-not-allowed' : 'active:scale-90'} ${config.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: SHARK_PALETTES[c].body }}
+                    key={id}
+                    onClick={() => onApplyTheme(id)}
+                    className={`rounded-xl border-2 p-3 text-left transition-all active:scale-95 ${
+                      theme === id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'
+                    }`}
                   >
-                    {isLocked && (
-                      <span className="absolute inset-0 flex items-center justify-center text-lg">🔒</span>
-                    )}
+                    <p className="text-base font-black text-ocean-900">
+                      {preset.icon} {preset.label}
+                    </p>
+                    <p className="text-[11px] text-gray-500 font-bold mt-1">{preset.summary}</p>
                   </button>
                 );
               })}
             </div>
-            {!isCoralUnlocked && (
-              <p className="text-xs text-gray-500 mt-2">珊瑚色需完成全部字母或全部数字后解锁</p>
-            )}
+            <p className="text-xs text-gray-500 mt-2">练习会提升主题效果：渐变 → 泡泡尾迹 → 闪光徽章</p>
+            <p className="text-xs text-ocean-700 mt-1 font-bold">
+              当前主题练习 {themePracticeCount} 次，升级层级 {themeUpgradeLevel + 1}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold text-gray-700 mb-3">颜色 (Color)</h3>
+            <div className="grid grid-cols-4 gap-3 justify-items-center">
+              {SHARK_COLOR_OPTIONS.map((c) => {
+                return (
+                  <button
+                    key={c}
+                    title={c}
+                    onClick={() => onChange({ ...config, color: c })}
+                    className={`relative w-12 h-12 rounded-full border-4 shadow-sm transform transition-transform active:scale-90 ${config.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
+                    style={{ backgroundColor: SHARK_PALETTES[c].body }}
+                  />
+                );
+              })}
+            </div>
           </div>
 
           <div>
             <h3 className="text-lg font-bold text-gray-700 mb-3">装饰 (Accessory)</h3>
             <div className="grid grid-cols-4 gap-3">
               {SHARK_ACCESSORY_OPTIONS.map((item) => {
-                const isLocked = LOCKED_ACCESSORIES.has(item.id) && !isCoralUnlocked;
                 return (
                   <button
                     key={item.id}
-                    disabled={isLocked}
-                    title={isLocked ? '写完全部字母或全部数字可解锁袋子装饰' : item.label}
+                    title={item.label}
                     onClick={() => onChange({ ...config, accessory: item.id })}
-                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${isLocked ? 'opacity-45 cursor-not-allowed' : ''} ${config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'}`}
+                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'}`}
                   >
                     <span className="text-2xl mb-1">{item.icon}</span>
                     <span className="text-xs font-bold text-gray-600">{item.label}</span>
-                    {isLocked && (
-                      <span className="absolute top-1 right-1 text-xs">🔒</span>
-                    )}
                   </button>
                 );
               })}
             </div>
-            {!isCoralUnlocked && (
-              <p className="text-xs text-gray-500 mt-2">红袋/绿袋/蓝袋/浅珊瑚袋需完成全部字母或全部数字后解锁</p>
-            )}
           </div>
 
           <div>
@@ -594,7 +698,11 @@ const Confetti: React.FC = () => {
 
 // 5. Shark Reward Animation
 // Enhanced to support multiple random animation types
-const SharkReward: React.FC<{ sharkConfig: SharkConfig }> = ({ sharkConfig }) => {
+const SharkReward: React.FC<{ sharkConfig: SharkConfig; theme: SharkTheme; themeUpgradeLevel: number }> = ({
+  sharkConfig,
+  theme,
+  themeUpgradeLevel,
+}) => {
   const [animationType, setAnimationType] = useState('celebration-swim');
 
   useEffect(() => {
@@ -659,7 +767,12 @@ const SharkReward: React.FC<{ sharkConfig: SharkConfig }> = ({ sharkConfig }) =>
         className="absolute z-20 w-64 h-64 md:w-96 md:h-96"
         style={{ animation: `${animationType} 3.5s ease-in-out forwards` }}
       >
-        <FriendlyShark className="w-full h-full drop-shadow-2xl" config={sharkConfig} />
+        <FriendlyShark
+          className="w-full h-full drop-shadow-2xl"
+          config={sharkConfig}
+          theme={theme}
+          upgradeLevel={themeUpgradeLevel}
+        />
       </div>
       <div 
         className="absolute z-30 text-6xl md:text-8xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
@@ -859,8 +972,22 @@ const LetterView: React.FC<{
   onUpdateImage: (img: string) => void,
   progressLevels: TraceMetricLevels,
   onAttemptAnalyzed: (attempt: TraceAttempt) => void,
-  difficultyMode: DifficultyMode
-}> = ({ letter, onBack, onComplete, sharkConfig, customImage, onUpdateImage, progressLevels, onAttemptAnalyzed, difficultyMode }) => {
+  difficultyMode: DifficultyMode,
+  theme: SharkTheme,
+  themeUpgradeLevel: number
+}> = ({
+  letter,
+  onBack,
+  onComplete,
+  sharkConfig,
+  customImage,
+  onUpdateImage,
+  progressLevels,
+  onAttemptAnalyzed,
+  difficultyMode,
+  theme,
+  themeUpgradeLevel,
+}) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDemonstrating, setIsDemonstrating] = useState(true);
@@ -1268,7 +1395,7 @@ const LetterView: React.FC<{
       
       {/* Footer / Shark Helper */}
       <div className="flex-none p-4 flex justify-center pointer-events-none">
-        <FriendlyShark className="w-24 h-24" config={sharkConfig} />
+        <FriendlyShark className="w-24 h-24" config={sharkConfig} theme={theme} upgradeLevel={themeUpgradeLevel} />
       </div>
 
       <ImageGenModal 
@@ -1282,6 +1409,54 @@ const LetterView: React.FC<{
   );
 };
 
+const ThemeChoiceModal: React.FC<{
+  isOpen: boolean;
+  currentTheme: SharkTheme;
+  themePracticeCounts: Record<SharkTheme, number>;
+  onChoose: (theme: SharkTheme) => void;
+  onClose: () => void;
+}> = ({ isOpen, currentTheme, themePracticeCounts, onChoose, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[72] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-2xl font-black text-ocean-900 mb-2">今天当哪种鲨鱼？</h2>
+        <p className="text-sm font-bold text-gray-500 mb-4">选一个喜欢的风格，马上换装</p>
+        <div className="grid grid-cols-1 gap-3">
+          {SHARK_THEME_ORDER.map((id) => {
+            const preset = SHARK_THEME_PRESETS[id];
+            const level = getThemeUpgradeLevel(themePracticeCounts[id]);
+            return (
+              <button
+                key={id}
+                onClick={() => onChoose(id)}
+                className={`rounded-2xl border-2 px-4 py-3 text-left transition-all active:scale-95 ${
+                  currentTheme === id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-black text-ocean-900">
+                    {preset.icon} {preset.label}
+                  </span>
+                  <span className="text-xs font-black text-ocean-600">升级 {level + 1}</span>
+                </div>
+                <p className="text-xs font-bold text-gray-500 mt-1">{preset.summary}</p>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full mt-4 bg-ocean-100 text-ocean-900 rounded-2xl py-3 font-black active:scale-95"
+        >
+          稍后再选
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // 10. Main App
 export default function App() {
   const initialChildState = useMemo(() => loadChildState(), []);
@@ -1291,9 +1466,14 @@ export default function App() {
   const [completedLetters, setCompletedLetters] = useState<LetterProgress>(initialChildState.completedLetters);
   const [showReward, setShowReward] = useState(false);
   const [showMissionRitual, setShowMissionRitual] = useState(false);
+  const [showThemeChoice, setShowThemeChoice] = useState(false);
   const [returnViewAfterTrace, setReturnViewAfterTrace] = useState<AppView>(AppView.HOME);
   const [sharkConfig, setSharkConfig] = useState<SharkConfig>(initialChildState.sharkConfig);
   const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>(initialChildState.difficultyMode);
+  const [currentTheme, setCurrentTheme] = useState<SharkTheme>(initialChildState.currentTheme);
+  const [themePracticeCounts, setThemePracticeCounts] = useState<Record<SharkTheme, number>>(
+    initialChildState.themePracticeCounts
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
   const [missionStore, setMissionStore] = useState<MissionStoreState>(() => loadMissionStore());
@@ -1316,13 +1496,11 @@ export default function App() {
   const missionDoneCount = todayMission.items.filter((item) =>
     todayPracticedKeys.includes(missionItemKey(item))
   ).length;
-  const lettersDone = LETTER_ITEMS.filter((item) => completedLetters[item.char]).length;
-  const numbersDone = NUMBER_ITEMS.filter((item) => completedLetters[item.char]).length;
-  const isCoralUnlocked = lettersDone === LETTER_ITEMS.length || numbersDone === NUMBER_ITEMS.length;
   const currentItemKey = currentLetter ? getPracticeItemKey(currentLetter.char, activeCategory) : null;
   const currentProgressLevels = currentItemKey
     ? getDisplayLevels(metricsStore, currentItemKey)
     : DEFAULT_METRIC_LEVELS;
+  const currentThemeUpgradeLevel = getThemeUpgradeLevel(themePracticeCounts[currentTheme]);
 
   const getCategoryView = (category: LearningCategory) =>
     category === 'letters' ? AppView.LETTER_LIST : category === 'numbers' ? AppView.NUMBER_LIST : AppView.SHAPE_LIST;
@@ -1361,11 +1539,17 @@ export default function App() {
         setMissionStore((prev) => addPracticedMissionItem(prev, todayKey, itemKey, minutesDelta));
       }
 
+      setThemePracticeCounts((prev) => ({
+        ...prev,
+        [currentTheme]: (prev[currentTheme] || 0) + 1,
+      }));
+
       setShowReward(true);
       setTimeout(() => {
         setShowReward(false);
         setView(returnViewAfterTrace);
         setCurrentLetter(null);
+        setShowThemeChoice(true);
       }, 4000);
     }
   };
@@ -1374,6 +1558,16 @@ export default function App() {
      if (currentLetter) {
        setCustomImages(prev => ({ ...prev, [currentLetter.char]: img }));
      }
+  };
+
+  const applyTheme = (theme: SharkTheme) => {
+    const preset = SHARK_THEME_PRESETS[theme];
+    setCurrentTheme(theme);
+    setSharkConfig((prev) => ({
+      ...prev,
+      color: preset.color,
+      accessory: preset.accessory,
+    }));
   };
 
   const handleAttemptAnalyzed = (attempt: TraceAttempt) => {
@@ -1405,8 +1599,10 @@ export default function App() {
       customImages,
       sharkConfig,
       difficultyMode,
+      currentTheme,
+      themePracticeCounts,
     });
-  }, [completedLetters, customImages, sharkConfig, difficultyMode]);
+  }, [completedLetters, customImages, sharkConfig, difficultyMode, currentTheme, themePracticeCounts]);
 
   useEffect(() => {
     if (!todayDay || todayDay.ritualDone) return;
@@ -1431,22 +1627,8 @@ export default function App() {
     setMissionStore((prev) => completeMissionRitual(prev, todayKey));
     setShowMissionRitual(false);
     speak('击掌成功，明天继续冒险！', 'zh-CN');
+    setShowThemeChoice(true);
   };
-
-  useEffect(() => {
-    if (isCoralUnlocked) return;
-
-    const needResetColor = sharkConfig.color === CORAL_COLOR;
-    const needResetAccessory = LOCKED_ACCESSORIES.has(sharkConfig.accessory);
-
-    if (needResetColor || needResetAccessory) {
-      setSharkConfig((prev) => ({
-        ...prev,
-        color: prev.color === CORAL_COLOR ? 'blue' : prev.color,
-        accessory: LOCKED_ACCESSORIES.has(prev.accessory) ? 'none' : prev.accessory,
-      }));
-    }
-  }, [isCoralUnlocked, sharkConfig.color, sharkConfig.accessory]);
 
   return (
     <div className="h-full w-full relative">
@@ -1462,7 +1644,12 @@ export default function App() {
       `}</style>
       
       {view === AppView.INTRO && (
-        <IntroScreen onStart={handleStart} sharkConfig={sharkConfig} />
+        <IntroScreen
+          onStart={handleStart}
+          sharkConfig={sharkConfig}
+          theme={currentTheme}
+          themeUpgradeLevel={currentThemeUpgradeLevel}
+        />
       )}
 
       {view === AppView.HOME && (
@@ -1528,11 +1715,13 @@ export default function App() {
           progressLevels={currentProgressLevels}
           onAttemptAnalyzed={handleAttemptAnalyzed}
           difficultyMode={difficultyMode}
+          theme={currentTheme}
+          themeUpgradeLevel={currentThemeUpgradeLevel}
         />
       )}
 
       {showReward && (
-        <SharkReward sharkConfig={sharkConfig} />
+        <SharkReward sharkConfig={sharkConfig} theme={currentTheme} themeUpgradeLevel={currentThemeUpgradeLevel} />
       )}
 
       <SettingsModal 
@@ -1540,11 +1729,24 @@ export default function App() {
         onClose={() => setShowSettings(false)}
         config={sharkConfig}
         onChange={setSharkConfig}
-        isCoralUnlocked={isCoralUnlocked}
+        theme={currentTheme}
+        themeUpgradeLevel={currentThemeUpgradeLevel}
+        themePracticeCount={themePracticeCounts[currentTheme]}
+        onApplyTheme={applyTheme}
         difficultyMode={difficultyMode}
         onChangeDifficulty={setDifficultyMode}
       />
       <MissionRitual isOpen={showMissionRitual} onHighFive={handleHighFiveRitual} />
+      <ThemeChoiceModal
+        isOpen={showThemeChoice}
+        currentTheme={currentTheme}
+        themePracticeCounts={themePracticeCounts}
+        onChoose={(theme) => {
+          applyTheme(theme);
+          setShowThemeChoice(false);
+        }}
+        onClose={() => setShowThemeChoice(false)}
+      />
     </div>
   );
 }
