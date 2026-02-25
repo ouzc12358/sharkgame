@@ -10,6 +10,7 @@ import ShapesMode from './src/modules/learn/ShapesMode';
 import NumbersMode from './src/modules/learn/NumbersMode';
 import LettersMode from './src/modules/learn/LettersMode';
 import DressUpAdventure from './src/modules/dressup/DressUpAdventure';
+import SkateAdventure from './src/modules/skate/SkateAdventure';
 import MissionRitual from './src/components/MissionRitual';
 import ParentZone from './src/components/ParentZone';
 import SharkSettingsModal from './src/components/SharkSettingsModal';
@@ -41,7 +42,7 @@ import { setAudioPreferenceFlags, speak } from './src/logic/audio';
 import { loadChildState, saveChildState } from './src/logic/storage';
 import { getThemeUpgradeLevel, SHARK_THEME_PRESETS } from './src/modules/dressup/sharkStyle';
 
-type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'dressup';
+type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'dressup' | 'skate';
 
 const formatPracticeItemKey = (itemKey: string) => {
   const [type, char] = itemKey.split(':');
@@ -248,6 +249,14 @@ export default function App() {
     }
   };
 
+  const onCompleteDressupChallenge = (
+    item: LetterConfig,
+    _category: LearningCategory,
+    _minutesDelta: number
+  ) => {
+    onRequestComplete(item);
+  };
+
   const getProgressLevels = (item: LetterConfig, category: LearningCategory) => {
     const itemKey = getPracticeItemKey(item.char, category);
     return getDisplayLevels(metricsStore, itemKey);
@@ -381,6 +390,38 @@ export default function App() {
     if (route === 'dressup') {
       return (
         <DressUpAdventure
+          onBack={() => setRoute('home')}
+          onOpenSettings={() => setShowSettings(true)}
+          sharkConfig={sharkConfig}
+          theme={currentTheme}
+          themeUpgradeLevel={currentThemeUpgradeLevel}
+          dressupMissionPool={dressupMissionPool}
+          onApplyTheme={applyTheme}
+          onApplyColor={(color) =>
+            setSharkConfig((prev) => ({
+              ...prev,
+              color,
+            }))
+          }
+          onApplyAccessory={(accessory) =>
+            setSharkConfig((prev) => ({
+              ...prev,
+              accessory,
+            }))
+          }
+          onAttemptChallenge={onRequestAttempt}
+          onChallengeComplete={onCompleteDressupChallenge}
+          getProgressLevels={getProgressLevels}
+          customImages={customImages}
+          onUpdateImage={handleUpdateImage}
+          styleTokens={styleTokens}
+        />
+      );
+    }
+
+    if (route === 'skate') {
+      return (
+        <SkateAdventure
           mission={todayMission}
           practicedItemKeys={todayPracticedKeys}
           onBack={() => setRoute('home')}
@@ -412,6 +453,7 @@ export default function App() {
         onOpenNumbers={() => setRoute('numbers')}
         onOpenLetters={() => setRoute('letters')}
         onOpenDressup={() => setRoute('dressup')}
+        onOpenSkate={() => setRoute('skate')}
         onOpenSettings={() => setShowSettings(true)}
         streak={missionStore.streak}
         todayCompleted={Boolean(todayDay?.completed)}

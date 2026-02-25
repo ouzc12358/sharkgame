@@ -8,6 +8,7 @@ interface HomeScreenProps {
   onOpenNumbers: () => void;
   onOpenLetters: () => void;
   onOpenDressup: () => void;
+  onOpenSkate: () => void;
   onOpenSettings: () => void;
   streak: number;
   todayCompleted: boolean;
@@ -25,6 +26,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenNumbers,
   onOpenLetters,
   onOpenDressup,
+  onOpenSkate,
   onOpenSettings,
   streak,
   todayCompleted,
@@ -78,10 +80,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
 
           <button onClick={onOpenDressup} className={TILE_BASE}>
-            <div className="text-5xl mb-2">🦈</div>
-            <p className="text-3xl font-black text-ocean-900">装扮冒险</p>
+            <div className="text-5xl mb-2">🎨</div>
+            <p className="text-3xl font-black text-ocean-900">换装大冒险</p>
             <p className="text-base font-bold text-gray-500 mt-1">Dress-up Adventure</p>
             <p className="text-xs font-black text-ocean-700 mt-2">当前挑战池：{dressupPoolMode === 'shapes' ? '线条' : dressupPoolMode === 'numbers' ? '数字' : dressupPoolMode === 'letters' ? '字母' : '混合'}</p>
+          </button>
+
+          <button onClick={onOpenSkate} className={TILE_BASE}>
+            <div className="text-5xl mb-2">🛹</div>
+            <p className="text-3xl font-black text-ocean-900">滑板大冒险</p>
+            <p className="text-base font-bold text-gray-500 mt-1">Skate Adventure</p>
           </button>
         </div>
       </div>
