@@ -15,6 +15,7 @@ import MissionRitual from './src/components/MissionRitual';
 import ParentZone from './src/components/ParentZone';
 import SharkSettingsModal from './src/components/SharkSettingsModal';
 import ThemeChoiceModal from './src/components/ThemeChoiceModal';
+import SharkReward from './src/components/SharkReward';
 import { buildDailyMission, getDateKey, MissionItem, missionItemKey } from './src/logic/missions';
 import {
   addPracticedMissionItem,
@@ -79,6 +80,8 @@ export default function App() {
   const [showThemeChoice, setShowThemeChoice] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showParentZone, setShowParentZone] = useState(false);
+  const [showSharkReward, setShowSharkReward] = useState(false);
+  const [sharkRewardSeed, setSharkRewardSeed] = useState(0);
 
   const [completedLetters, setCompletedLetters] = useState(initialChildState.completedLetters);
   const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
@@ -230,6 +233,8 @@ export default function App() {
       [currentTheme]: (prev[currentTheme] || 0) + 1,
     }));
     setStyleTokens((prev) => prev + 1);
+    setSharkRewardSeed((prev) => prev + 1);
+    setShowSharkReward(true);
   };
 
   const onCompleteMissionChallenge = (
@@ -409,7 +414,7 @@ export default function App() {
               accessory,
             }))
           }
-          onAttemptChallenge={onRequestAttempt}
+          onChallengeAttempt={onRequestAttempt}
           onChallengeComplete={onCompleteDressupChallenge}
           getProgressLevels={getProgressLevels}
           customImages={customImages}
@@ -544,6 +549,15 @@ export default function App() {
         onChangeRhythmGateIntensity={setRhythmGateIntensity}
         skateModuleEnabled={skateModuleEnabled}
         onToggleSkateModule={setSkateModuleEnabled}
+      />
+
+      <SharkReward
+        isOpen={showSharkReward}
+        seed={sharkRewardSeed}
+        sharkConfig={sharkConfig}
+        theme={currentTheme}
+        themeUpgradeLevel={currentThemeUpgradeLevel}
+        onClose={() => setShowSharkReward(false)}
       />
 
     </div>

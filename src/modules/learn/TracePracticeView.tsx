@@ -255,7 +255,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const checkSuccess = (currentStrokes: Point[][]) => {
     const allUserPoints = currentStrokes.flat();
-    if (successPreset === 'easy' && allUserPoints.length > 0) {
+    if (successPreset === 'easy' && allUserPoints.length >= successConfig.minPoints) {
       const metrics = computeTraceMetrics(currentStrokes, pathPoints);
       const attempt: TraceAttempt = {
         at: Date.now(),
@@ -271,7 +271,11 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     }
 
     if (allUserPoints.length < successConfig.minPoints) {
-      setHelperMessage('再写一点点就完成啦');
+      playSound('guide');
+      setGuideFlash(true);
+      window.setTimeout(() => setGuideFlash(false), 380);
+      setHelperMessage('还差一点点，再写一笔就完成啦');
+      speak('还差一点点，再写一笔', 'zh-CN', 0.6);
       return;
     }
 
