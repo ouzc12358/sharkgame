@@ -12,7 +12,7 @@ import {
   computeTraceMetrics,
 } from '../../logic/metrics';
 import { dist, getPathPoints, getStrokeGuides, LearningCategory } from '../../logic/tracing';
-import { playSound, speak, speakItemPrimary } from '../../logic/audio';
+import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import ImagePickerModal from '../../components/ImagePickerModal';
 
@@ -128,15 +128,16 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '请沿着线写');
     setIsDemonstrating(!skipDemo);
     
-    speakItemPrimary(item);
-    const wordDelay = skipDemo ? 320 : 1300;
-    const wordTimer = window.setTimeout(() => {
-      if (supportsCaseToggle) {
-        speak(item.word, 'en-US');
-      } else {
+    let wordTimer: number | null = null;
+    if (supportsCaseToggle) {
+      speakLetterThenWord(item.char, item.word);
+    } else {
+      speakItemPrimary(item);
+      const wordDelay = skipDemo ? 320 : 1300;
+      wordTimer = window.setTimeout(() => {
         speak(item.word, 'zh-CN');
-      }
-    }, wordDelay);
+      }, wordDelay);
+    }
 
     let timer: number | null = null;
     if (!skipDemo) {
@@ -145,7 +146,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
     return () => {
       if (timer !== null) window.clearTimeout(timer);
-      window.clearTimeout(wordTimer);
+      if (wordTimer !== null) window.clearTimeout(wordTimer);
     };
   }, [item, isShapeChallenge, supportsCaseToggle, skipDemo]);
 
@@ -156,7 +157,11 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '再试一次，慢慢来');
     setIsDemonstrating(!skipDemo);
-    speakItemPrimary(item);
+    if (supportsCaseToggle) {
+      speakLetterThenWord(item.char, item.word);
+    } else {
+      speakItemPrimary(item);
+    }
     if (!skipDemo) {
       window.setTimeout(() => {
         setIsDemonstrating(false);
@@ -250,6 +255,21 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const checkSuccess = (currentStrokes: Point[][]) => {
     const allUserPoints = currentStrokes.flat();
+    if (successPreset === 'easy' && allUserPoints.length > 0) {
+      const metrics = computeTraceMetrics(currentStrokes, pathPoints);
+      const attempt: TraceAttempt = {
+        at: Date.now(),
+        scores: metrics.scores,
+        levels: metrics.levels,
+      };
+      onAttemptAnalyzed(attempt);
+      playSound('end');
+      setHelperMessage('太棒啦，完成啦');
+      setReturnBubble(null);
+      window.setTimeout(onComplete, 220);
+      return;
+    }
+
     if (allUserPoints.length < successConfig.minPoints) {
       setHelperMessage('再写一点点就完成啦');
       return;
