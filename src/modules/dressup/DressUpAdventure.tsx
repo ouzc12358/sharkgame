@@ -234,6 +234,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         difficultyMode="guide"
         theme={theme}
         themeUpgradeLevel={themeUpgradeLevel}
+        successPreset="easy"
       />
     );
   }

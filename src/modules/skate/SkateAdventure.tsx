@@ -196,6 +196,7 @@ const SkateAdventure: React.FC<SkateAdventureProps> = ({
           difficultyMode="guide"
           theme={theme}
           themeUpgradeLevel={themeUpgradeLevel}
+          successPreset="easy"
         />
 
         {showCelebrate && (

@@ -67,6 +67,7 @@ interface TracePracticeViewProps {
   difficultyMode: DifficultyMode;
   theme: SharkTheme;
   themeUpgradeLevel: number;
+  successPreset?: 'normal' | 'easy';
 }
 
 const TracePracticeView: React.FC<TracePracticeViewProps> = ({
@@ -82,6 +83,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   difficultyMode,
   theme,
   themeUpgradeLevel,
+  successPreset = 'normal',
 }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -97,6 +99,20 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item]);
   const guides = useMemo(() => getStrokeGuides(item.svgPath), [item]);
   const difficultyConfig = DIFFICULTY_CONFIG[difficultyMode];
+  const successConfig =
+    successPreset === 'easy'
+      ? {
+          minPoints: 4,
+          coverageThreshold: 12,
+          successCoverage: Math.max(0.28, difficultyConfig.successCoverage - 0.55),
+          successFollow: Math.max(0.02, difficultyConfig.successFollow - 0.22),
+        }
+      : {
+          minPoints: 10,
+          coverageThreshold: 7,
+          successCoverage: difficultyConfig.successCoverage,
+          successFollow: difficultyConfig.successFollow,
+        };
 
   const isDragging = useRef(false);
   const [nextGuideIndex, setNextGuideIndex] = useState(0);
@@ -227,7 +243,10 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const checkSuccess = (currentStrokes: Point[][]) => {
     const allUserPoints = currentStrokes.flat();
-    if (allUserPoints.length < 10) return;
+    if (allUserPoints.length < successConfig.minPoints) {
+      setHelperMessage('再写一点点就完成啦');
+      return;
+    }
 
     const metrics = computeTraceMetrics(currentStrokes, pathPoints);
     const attempt: TraceAttempt = {
@@ -238,7 +257,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     onAttemptAnalyzed(attempt);
 
     let coveredCount = 0;
-    const coverageThreshold = 7;
+    const coverageThreshold = successConfig.coverageThreshold;
 
     for (const targetP of pathPoints) {
       let isCovered = false;
@@ -253,7 +272,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
     const coverage = coveredCount / pathPoints.length;
     const isSuccess =
-      coverage > difficultyConfig.successCoverage && metrics.scores.follow > difficultyConfig.successFollow;
+      coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow;
 
     if (isSuccess) {
       playSound('end');
