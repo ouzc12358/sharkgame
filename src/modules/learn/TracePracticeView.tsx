@@ -100,6 +100,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item]);
   const guides = useMemo(() => getStrokeGuides(item.svgPath), [item]);
+  const expectedStrokeCount = Math.max(1, guides.length);
   const difficultyConfig = DIFFICULTY_CONFIG[difficultyMode];
   const successConfig =
     successPreset === 'easy'
@@ -255,6 +256,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const checkSuccess = (currentStrokes: Point[][]) => {
     const allUserPoints = currentStrokes.flat();
+    const drawnStrokeCount = currentStrokes.filter((stroke) => stroke.length > 1).length;
+    if (drawnStrokeCount < expectedStrokeCount) {
+      setHelperMessage(`继续下一笔（${drawnStrokeCount}/${expectedStrokeCount}）`);
+      return;
+    }
+
     if (allUserPoints.length < successConfig.minPoints) {
       playSound('guide');
       setGuideFlash(true);

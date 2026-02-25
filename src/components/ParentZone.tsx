@@ -37,10 +37,9 @@ const DIFFICULTY_OPTIONS: Array<{ id: DifficultyMode; label: string }> = [
 ];
 
 const DRESSUP_POOL_OPTIONS: Array<{ id: DressupMissionPoolMode; label: string }> = [
-  { id: 'shapes', label: '线条' },
   { id: 'numbers', label: '数字' },
   { id: 'letters', label: '字母' },
-  { id: 'mixed', label: '混合' },
+  { id: 'mixed', label: '字母+数字' },
 ];
 
 const SESSION_OPTIONS: SessionLengthTarget[] = [5, 6, 7, 8];
@@ -142,7 +141,7 @@ const ParentZone: React.FC<ParentZoneProps> = ({
 
         <div className="rounded-2xl border border-gray-200 p-4 mb-5">
           <h3 className="text-lg font-black text-ocean-900 mb-3">Dress-up 任务池</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {DRESSUP_POOL_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -157,7 +156,7 @@ const ParentZone: React.FC<ParentZoneProps> = ({
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-500 font-bold mt-2">默认线条；只有开启混合模式才会在同一任务里混合技能类型。</p>
+          <p className="text-xs text-gray-500 font-bold mt-2">仅用于换装冒险，挑战只会出现字母和数字。</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">

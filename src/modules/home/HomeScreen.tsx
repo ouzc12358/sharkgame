@@ -83,7 +83,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="text-5xl mb-2">🎨</div>
             <p className="text-3xl font-black text-ocean-900">换装大冒险</p>
             <p className="text-base font-bold text-gray-500 mt-1">Dress-up Adventure</p>
-            <p className="text-xs font-black text-ocean-700 mt-2">当前挑战池：{dressupPoolMode === 'shapes' ? '线条' : dressupPoolMode === 'numbers' ? '数字' : dressupPoolMode === 'letters' ? '字母' : '混合'}</p>
+            <p className="text-xs font-black text-ocean-700 mt-2">
+              当前挑战池：
+              {dressupPoolMode === 'numbers' ? '数字' : dressupPoolMode === 'letters' ? '字母' : '字母+数字'}
+            </p>
           </button>
 
           <button onClick={onOpenSkate} className={TILE_BASE}>

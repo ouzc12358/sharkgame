@@ -7,7 +7,7 @@ import {
   SharkConfig,
   SharkTheme,
 } from '../../../types';
-import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from '../../../constants';
+import { LETTER_ITEMS, NUMBER_ITEMS } from '../../../constants';
 import { LearningCategory } from '../../logic/tracing';
 import { TraceAttempt, TraceMetricLevels } from '../../logic/metrics';
 import FriendlyShark from '../../components/FriendlyShark';
@@ -46,17 +46,6 @@ interface PendingChallenge {
   hint: string;
 }
 
-const COLOR_TO_LETTER: Record<SharkColor, string> = {
-  blue: 'B',
-  pink: 'P',
-  green: 'G',
-  purple: 'U',
-  orange: 'O',
-  teal: 'T',
-  yellow: 'Y',
-  coral: 'C',
-};
-
 const COLOR_LABELS: Record<SharkColor, string> = {
   blue: '蓝色',
   pink: '粉色',
@@ -82,17 +71,24 @@ const getChallengeByPool = (pool: DressupMissionPoolMode): { item: LetterConfig;
     const item = NUMBER_ITEMS[Math.floor(Math.random() * NUMBER_ITEMS.length)];
     return { item, category: 'numbers' };
   }
-  if (pool === 'shapes') {
-    const item = SHAPE_ITEMS[Math.floor(Math.random() * SHAPE_ITEMS.length)];
-    return { item, category: 'shapes' };
-  }
 
-  const mixed = [
+  // Dress-up mode uses only letters and numbers.
+  const letterOrNumber = [
     { category: 'letters' as const, item: LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)] },
     { category: 'numbers' as const, item: NUMBER_ITEMS[Math.floor(Math.random() * NUMBER_ITEMS.length)] },
-    { category: 'shapes' as const, item: SHAPE_ITEMS[Math.floor(Math.random() * SHAPE_ITEMS.length)] },
   ];
-  return mixed[Math.floor(Math.random() * mixed.length)];
+  return letterOrNumber[Math.floor(Math.random() * letterOrNumber.length)];
+};
+
+const pickRandomLetterItem = (excludeChar?: string): LetterConfig => {
+  if (LETTER_ITEMS.length <= 1) return LETTER_ITEMS[0];
+  let next = LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)];
+  let guard = 0;
+  while (excludeChar && next.char === excludeChar && guard < 8) {
+    next = LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)];
+    guard += 1;
+  }
+  return next;
 };
 
 const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
@@ -119,18 +115,19 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   const [successTip, setSuccessTip] = useState('');
   const applyActionRef = useRef<null | (() => void)>(null);
   const challengeStartRef = useRef<number>(Date.now());
+  const lastColorChallengeCharRef = useRef<string | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const suppressAccessoryClickRef = useRef(false);
 
   const poolLabel =
     dressupMissionPool === 'shapes'
-      ? '线条'
+      ? '字母+数字'
       : dressupMissionPool === 'numbers'
       ? '数字'
       : dressupMissionPool === 'letters'
       ? '字母'
-      : '混合';
+      : '字母+数字';
 
   const accessoryMeta = useMemo(() => {
     const map: Record<string, { label: string; icon: string }> = {};
@@ -141,15 +138,15 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   }, []);
 
   const openColorChallenge = (color: SharkColor) => {
-    const targetChar = COLOR_TO_LETTER[color];
-    const letterItem = LETTER_ITEMS.find((item) => item.char === targetChar) || LETTER_ITEMS[0];
+    const letterItem = pickRandomLetterItem(lastColorChallengeCharRef.current || undefined);
+    lastColorChallengeCharRef.current = letterItem.char;
     applyActionRef.current = () => onApplyColor(color);
     setPendingChallenge({
       source: 'color',
       category: 'letters',
       item: letterItem,
       title: `换成${COLOR_LABELS[color]}`,
-      hint: `先写一个 ${targetChar}，再把鲨鱼变成${COLOR_LABELS[color]}`,
+      hint: `先写一个 ${letterItem.char}，再把鲨鱼变成${COLOR_LABELS[color]}`,
     });
     setIsChallengeStarted(false);
   };
@@ -334,7 +331,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                 />
               ))}
             </div>
-            <p className="text-xs font-bold text-gray-500 mt-2">例如黄色会先让孩子写一个 Y</p>
+            <p className="text-xs font-bold text-gray-500 mt-2">颜色挑战字母会随机出现</p>
           </div>
 
           <div>
