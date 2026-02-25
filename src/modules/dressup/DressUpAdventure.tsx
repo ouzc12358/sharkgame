@@ -120,6 +120,8 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   const applyActionRef = useRef<null | (() => void)>(null);
   const challengeStartRef = useRef<number>(Date.now());
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressAccessoryClickRef = useRef(false);
 
   const poolLabel =
     dressupMissionPool === 'shapes'
@@ -168,8 +170,21 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 
   const beginDragAccessory = (event: React.PointerEvent, accessory: SharkAccessory, icon: string) => {
     event.preventDefault();
+    if (event.currentTarget.setPointerCapture) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
     const point = getPointerXY(event);
+    dragStartRef.current = { x: point.x, y: point.y };
+    suppressAccessoryClickRef.current = false;
     setDragging({ accessory, icon, x: point.x, y: point.y });
+  };
+
+  const handleAccessoryClick = (accessory: SharkAccessory) => {
+    if (suppressAccessoryClickRef.current) {
+      suppressAccessoryClickRef.current = false;
+      return;
+    }
+    openAccessoryChallenge(accessory);
   };
 
   React.useEffect(() => {
@@ -177,6 +192,10 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 
     const handlePointerMove = (event: PointerEvent) => {
       const point = getPointerXY(event);
+      const start = dragStartRef.current;
+      if (start && Math.hypot(point.x - start.x, point.y - start.y) > 8) {
+        suppressAccessoryClickRef.current = true;
+      }
       setDragging((prev) => (prev ? { ...prev, x: point.x, y: point.y } : prev));
       const rect = dropZoneRef.current?.getBoundingClientRect();
       if (rect) {
@@ -197,6 +216,10 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 
       setDragging(null);
       setIsDropActive(false);
+      dragStartRef.current = null;
+      window.setTimeout(() => {
+        suppressAccessoryClickRef.current = false;
+      }, 0);
     };
 
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
@@ -321,10 +344,11 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                 <button
                   key={item.id}
                   onPointerDown={(event) => beginDragAccessory(event, item.id, item.icon)}
-                  onClick={() => openAccessoryChallenge(item.id)}
-                  className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 ${
+                  onClick={() => handleAccessoryClick(item.id)}
+                  className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
                     sharkConfig.accessory === item.id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
                   }`}
+                  style={{ touchAction: 'none' }}
                 >
                   <p className="text-2xl">{item.icon}</p>
                   <p className="text-[11px] font-black text-gray-600">{item.label}</p>

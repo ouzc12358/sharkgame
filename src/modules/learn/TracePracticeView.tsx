@@ -104,10 +104,10 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const successConfig =
     successPreset === 'easy'
       ? {
-          minPoints: 4,
-          coverageThreshold: 12,
-          successCoverage: Math.max(0.28, difficultyConfig.successCoverage - 0.55),
-          successFollow: Math.max(0.02, difficultyConfig.successFollow - 0.22),
+          minPoints: 10,
+          coverageThreshold: 9,
+          successCoverage: Math.max(0.42, difficultyConfig.successCoverage - 0.35),
+          successFollow: Math.max(0.1, difficultyConfig.successFollow - 0.12),
         }
       : {
           minPoints: 10,
@@ -255,21 +255,6 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const checkSuccess = (currentStrokes: Point[][]) => {
     const allUserPoints = currentStrokes.flat();
-    if (successPreset === 'easy' && allUserPoints.length >= successConfig.minPoints) {
-      const metrics = computeTraceMetrics(currentStrokes, pathPoints);
-      const attempt: TraceAttempt = {
-        at: Date.now(),
-        scores: metrics.scores,
-        levels: metrics.levels,
-      };
-      onAttemptAnalyzed(attempt);
-      playSound('end');
-      setHelperMessage('太棒啦，完成啦');
-      setReturnBubble(null);
-      window.setTimeout(onComplete, 220);
-      return;
-    }
-
     if (allUserPoints.length < successConfig.minPoints) {
       playSound('guide');
       setGuideFlash(true);
@@ -302,12 +287,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     }
 
     const coverage = coveredCount / pathPoints.length;
-    const easyPass =
-      successPreset === 'easy' &&
-      (allUserPoints.length >= successConfig.minPoints + 2 || coverage > 0.2 || metrics.scores.follow > 0.08);
-    const isSuccess =
-      easyPass ||
-      (coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow);
+    const isSuccess = coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow;
 
     if (isSuccess) {
       playSound('end');
@@ -320,15 +300,22 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     playSound('guide');
     setGuideFlash(true);
     window.setTimeout(() => setGuideFlash(false), 550);
+    // Failed attempts should reset so wrong traces do not accumulate into a later pass.
+    window.setTimeout(() => {
+      setStrokes([]);
+      setCurrentStroke([]);
+      setNextGuideIndex(0);
+      setReturnBubble(null);
+    }, 280);
     if (difficultyMode === 'challenge') {
-      setHelperMessage('很棒的尝试，按右上角↺可再来一次');
-      speak('很棒的尝试，再来一次会更顺', 'zh-CN', 0.6);
+      setHelperMessage('很棒的尝试，已清空，按右上角↺可再来一次');
+      speak('很棒的尝试，已经清空，我们再来一次', 'zh-CN', 0.6);
     } else if (coverage > 0.72) {
-      setHelperMessage('快完成啦，再把浅灰线连接起来');
-      speak('快完成啦，再试一笔', 'zh-CN', 0.62);
+      setHelperMessage('快完成啦，已清空，重新从起点写');
+      speak('快完成啦，已经清空，从起点再试一笔', 'zh-CN', 0.62);
     } else {
-      setHelperMessage('慢慢来，沿着浅灰线走');
-      speak('慢慢来，沿着浅灰线走', 'zh-CN', 0.6);
+      setHelperMessage('没关系，已清空，回到起点慢慢写');
+      speak('没关系，已经清空，回到起点慢慢写', 'zh-CN', 0.6);
     }
   };
 
