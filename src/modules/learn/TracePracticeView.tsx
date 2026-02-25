@@ -68,6 +68,7 @@ interface TracePracticeViewProps {
   theme: SharkTheme;
   themeUpgradeLevel: number;
   successPreset?: 'normal' | 'easy';
+  skipDemo?: boolean;
 }
 
 const TracePracticeView: React.FC<TracePracticeViewProps> = ({
@@ -84,6 +85,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   theme,
   themeUpgradeLevel,
   successPreset = 'normal',
+  skipDemo = false,
 }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -124,24 +126,28 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setNextGuideIndex(0);
     setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '请沿着线写');
-    setIsDemonstrating(true);
-
+    setIsDemonstrating(!skipDemo);
+    
     speakItemPrimary(item);
+    const wordDelay = skipDemo ? 320 : 1300;
     const wordTimer = window.setTimeout(() => {
       if (supportsCaseToggle) {
         speak(item.word, 'en-US');
       } else {
         speak(item.word, 'zh-CN');
       }
-    }, 1300);
+    }, wordDelay);
 
-    const timer = window.setTimeout(() => setIsDemonstrating(false), 3000);
+    let timer: number | null = null;
+    if (!skipDemo) {
+      timer = window.setTimeout(() => setIsDemonstrating(false), 3000);
+    }
 
     return () => {
-      window.clearTimeout(timer);
+      if (timer !== null) window.clearTimeout(timer);
       window.clearTimeout(wordTimer);
     };
-  }, [item, isShapeChallenge, supportsCaseToggle]);
+  }, [item, isShapeChallenge, supportsCaseToggle, skipDemo]);
 
   const handleReplay = () => {
     setStrokes([]);
@@ -149,12 +155,13 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setNextGuideIndex(0);
     setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '再试一次，慢慢来');
-    setIsDemonstrating(true);
+    setIsDemonstrating(!skipDemo);
     speakItemPrimary(item);
-
-    window.setTimeout(() => {
-      setIsDemonstrating(false);
-    }, 3000);
+    if (!skipDemo) {
+      window.setTimeout(() => {
+        setIsDemonstrating(false);
+      }, 3000);
+    }
   };
 
   const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
@@ -271,8 +278,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     }
 
     const coverage = coveredCount / pathPoints.length;
+    const easyPass =
+      successPreset === 'easy' &&
+      (allUserPoints.length >= successConfig.minPoints + 2 || coverage > 0.2 || metrics.scores.follow > 0.08);
     const isSuccess =
-      coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow;
+      easyPass ||
+      (coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow);
 
     if (isSuccess) {
       playSound('end');

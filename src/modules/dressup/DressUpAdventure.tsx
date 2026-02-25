@@ -235,6 +235,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         theme={theme}
         themeUpgradeLevel={themeUpgradeLevel}
         successPreset="easy"
+        skipDemo
       />
     );
   }
