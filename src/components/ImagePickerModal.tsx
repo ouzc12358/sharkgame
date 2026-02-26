@@ -1,14 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LetterConfig } from '../../types';
-
-const LOCAL_STICKER_OPTIONS: Array<{ id: string; label: string; src: string }> = [
-  { id: 'apple', label: '苹果', src: '/stickers/apple.svg' },
-  { id: 'starfish', label: '海星', src: '/stickers/starfish.svg' },
-  { id: 'fish', label: '小鱼', src: '/stickers/fish.svg' },
-  { id: 'shell', label: '贝壳', src: '/stickers/shell.svg' },
-  { id: 'octopus', label: '章鱼', src: '/stickers/octopus.svg' },
-  { id: 'rainbow', label: '彩虹', src: '/stickers/rainbow.svg' },
-];
+import { speak, speakLetterThenWord } from '../logic/audio';
+import { STICKERS } from '../data/stickers';
 
 interface ImagePickerModalProps {
   isOpen: boolean;
@@ -25,18 +18,65 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   currentImage,
   onSave,
 }) => {
-  const [selected, setSelected] = useState<string>(currentImage || LOCAL_STICKER_OPTIONS[0].src);
+  const [selected, setSelected] = useState<string>(currentImage || STICKERS[0].src);
+
+  const itemTags = useMemo(
+    () =>
+      [
+        item.char,
+        item.char.toUpperCase(),
+        item.char.toLowerCase(),
+        item.word.toLowerCase(),
+        ...(item.stickerTags || []),
+      ].map((tag) => tag.trim()),
+    [item]
+  );
+
+  const recommendedStickers = useMemo(
+    () =>
+      STICKERS.map((sticker) => {
+        const normalizedTags = sticker.tags.map((tag) => tag.toLowerCase());
+        let score = 0;
+        for (const rawTag of itemTags) {
+          const tag = rawTag.toLowerCase();
+          if (!tag) continue;
+          if (normalizedTags.includes(tag)) score += 5;
+          else if (normalizedTags.some((candidate) => candidate.includes(tag) || tag.includes(candidate))) score += 2;
+        }
+        if (normalizedTags.includes('ocean')) score += 1;
+        return { sticker, score };
+      })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6)
+        .map((entry) => entry.sticker),
+    [itemTags]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
-    setSelected(currentImage || LOCAL_STICKER_OPTIONS[0].src);
-  }, [isOpen, currentImage]);
+    setSelected(currentImage || recommendedStickers[0]?.src || STICKERS[0].src);
+    if (/^[A-Z]$/.test(item.char)) {
+      speakLetterThenWord(item.char, item.phonics?.en || item.word);
+      return;
+    }
+    if (/^[0-9]$/.test(item.char)) {
+      speak(item.phonics?.zh || `数字${item.char}`, 'zh-CN', 0.56);
+      window.setTimeout(() => speak(`${item.char}条小鱼在游泳`, 'zh-CN', 0.58), 380);
+      return;
+    }
+    speak(`${item.word}像小泡泡一样`, 'zh-CN', 0.58);
+  }, [isOpen, currentImage, item, recommendedStickers]);
+
+  const handleSelectSticker = (src: string, labelZh: string) => {
+    setSelected(src);
+    speak(`${labelZh}，好可爱`, 'zh-CN', 0.6);
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-black text-ocean-900">贴纸盒</h2>
           <button onClick={onClose} className="text-2xl bg-gray-100 rounded-full w-10 h-10 hover:bg-gray-200">
@@ -55,17 +95,36 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
           <p className="text-sm font-bold text-gray-500">给 {item.word} 选一个贴纸吧</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {LOCAL_STICKER_OPTIONS.map((option) => (
+        <div className="mb-4">
+          <p className="text-sm font-black text-ocean-800 mb-2">推荐贴纸</p>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            {recommendedStickers.map((option) => (
+              <button
+                key={`recommended-${option.id}`}
+                onClick={() => handleSelectSticker(option.src, option.labelZh)}
+                className={`rounded-xl border-2 p-2 bg-white transition-all active:scale-95 ${
+                  selected === option.src ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'
+                }`}
+              >
+                <img src={option.src} alt={option.labelZh} className="w-full h-16 object-contain" />
+                <span className="text-xs font-bold text-gray-600">{option.labelZh}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-sm font-black text-ocean-800 mb-2">全部贴纸</p>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-5">
+          {STICKERS.map((option) => (
             <button
               key={option.id}
-              onClick={() => setSelected(option.src)}
+              onClick={() => handleSelectSticker(option.src, option.labelZh)}
               className={`rounded-xl border-2 p-2 bg-white transition-all active:scale-95 ${
                 selected === option.src ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'
               }`}
             >
-              <img src={option.src} alt={option.label} className="w-full h-16 object-contain" />
-              <span className="text-xs font-bold text-gray-600">{option.label}</span>
+              <img src={option.src} alt={option.labelZh} className="w-full h-16 object-contain" />
+              <span className="text-xs font-bold text-gray-600">{option.labelZh}</span>
             </button>
           ))}
         </div>
