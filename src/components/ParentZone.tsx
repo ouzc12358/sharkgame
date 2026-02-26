@@ -5,6 +5,7 @@ import {
   RhythmGateIntensity,
   SessionLengthTarget,
 } from '../../types';
+import ParentGlyphDebug from './ParentGlyphDebug';
 
 interface ParentZoneProps {
   isOpen: boolean;
@@ -74,6 +75,7 @@ const ParentZone: React.FC<ParentZoneProps> = ({
   skateModuleEnabled,
   onToggleSkateModule,
 }) => {
+  const [showGlyphDebug, setShowGlyphDebug] = React.useState(false);
   if (!isOpen) return null;
 
   return (
@@ -81,11 +83,27 @@ const ParentZone: React.FC<ParentZoneProps> = ({
       <div className="max-w-5xl mx-auto bg-white rounded-3xl p-5 md:p-7 shadow-2xl">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-3xl font-black text-ocean-900">Parent Zone</h2>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-200 text-2xl active:scale-95">
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGlyphDebug((prev) => !prev)}
+              className={`px-3 py-2 rounded-xl text-sm font-black border ${
+                showGlyphDebug
+                  ? 'bg-ocean-500 text-white border-ocean-500'
+                  : 'bg-white text-ocean-900 border-gray-200'
+              }`}
+            >
+              {showGlyphDebug ? '返回设置' : 'Glyph Debug'}
+            </button>
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-200 text-2xl active:scale-95">
+              ✕
+            </button>
+          </div>
         </div>
 
+        {showGlyphDebug ? (
+          <ParentGlyphDebug />
+        ) : (
+          <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <div className="rounded-2xl border border-gray-200 p-4">
             <h3 className="text-lg font-black text-ocean-900 mb-3">开关</h3>
@@ -256,6 +274,8 @@ const ParentZone: React.FC<ParentZoneProps> = ({
           <h3 className="text-base font-black text-amber-800 mb-1">家长提示（Skate）</h3>
           <p className="text-sm font-bold text-amber-700">应用内仅做想象与模仿兴趣引导；线下滑行请戴头盔并全程看护。</p>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
