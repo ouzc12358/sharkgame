@@ -12,6 +12,7 @@ import {
   computeTraceMetrics,
 } from '../../logic/metrics';
 import { dist, getPathPoints, getStrokeGuides, LearningCategory } from '../../logic/tracing';
+import { parseViewBox } from '../../logic/viewBox';
 import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import ImagePickerModal from '../../components/ImagePickerModal';
@@ -98,10 +99,20 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const isShapeChallenge = category === 'shapes';
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item]);
-  const guides = useMemo(() => getStrokeGuides(item.svgPath), [item]);
+  const viewBoxBounds = useMemo(() => parseViewBox(item.viewBox), [item.viewBox]);
+  const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item.svgPath]);
+  const guides = useMemo(() => getStrokeGuides(item.svgPath, item.viewBox), [item.svgPath, item.viewBox]);
   const expectedStrokeCount = Math.max(1, guides.length);
+  const hasValidPath = pathPoints.length > 0;
+  const unitScale = Math.max(0.5, Math.min(2.5, Math.min(viewBoxBounds.width, viewBoxBounds.height) / 100));
+  const traceStrokeWidth = Math.max(5, 12 * unitScale);
+  const guideStrokeWidth = Math.max(4, 10 * unitScale);
+  const guideBubbleRadius = Math.max(3, 4 * unitScale);
   const difficultyConfig = DIFFICULTY_CONFIG[difficultyMode];
+  const scaledDifficulty = {
+    snapDistance: difficultyConfig.snapDistance * unitScale,
+    returnDistance: difficultyConfig.returnDistance * unitScale,
+  };
   const successConfig =
     successPreset === 'easy'
       ? {
@@ -181,13 +192,16 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
 
     return {
-      x: ((clientX - rect.left) / rect.width) * 100,
-      y: ((clientY - rect.top) / rect.height) * 100,
+      x: viewBoxBounds.minX + ((clientX - rect.left) / rect.width) * viewBoxBounds.width,
+      y: viewBoxBounds.minY + ((clientY - rect.top) / rect.height) * viewBoxBounds.height,
       t: Date.now(),
     };
   };
 
   const findNearestPathPoint = (point: Point) => {
+    if (pathPoints.length === 0) {
+      return { point, index: 0, distance: Number.POSITIVE_INFINITY };
+    }
     let minDistance = Number.POSITIVE_INFINITY;
     let nearestPoint = pathPoints[0];
     let nearestIndex = 0;
@@ -205,17 +219,21 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (isDemonstrating) return;
+    if (!hasValidPath) {
+      setHelperMessage('这条线今天打盹啦，返回换一个试试');
+      return;
+    }
     isDragging.current = true;
     playSound('start');
     const rawPoint = getCanvasPoint(e);
     const nearest = findNearestPathPoint(rawPoint);
-    if (nearest.distance <= difficultyConfig.snapDistance) {
+    if (nearest.distance <= scaledDifficulty.snapDistance) {
       setNextGuideIndex((prev) => Math.max(prev, nearest.index));
       setCurrentStroke([{ ...nearest.point, t: rawPoint.t }]);
       setReturnBubble(null);
       return;
     }
-    if (nearest.distance > difficultyConfig.returnDistance) {
+    if (nearest.distance > scaledDifficulty.returnDistance) {
       setReturnBubble(nearest.point);
       setHelperMessage('跟着蓝泡泡回到线条');
     }
@@ -229,11 +247,11 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     const nearest = findNearestPathPoint(rawPoint);
     let drawPoint = rawPoint;
 
-    if (nearest.distance <= difficultyConfig.snapDistance) {
+    if (nearest.distance <= scaledDifficulty.snapDistance) {
       drawPoint = { ...nearest.point, t: rawPoint.t };
       setNextGuideIndex((prev) => Math.max(prev, nearest.index));
       setReturnBubble(null);
-    } else if (nearest.distance > difficultyConfig.returnDistance) {
+    } else if (nearest.distance > scaledDifficulty.returnDistance) {
       setReturnBubble(nearest.point);
       setHelperMessage(
         difficultyMode === 'challenge' ? '自由写也可以，想贴线就跟着蓝泡泡' : '跟着蓝泡泡回到线条'
@@ -255,12 +273,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   };
 
   const checkSuccess = (currentStrokes: Point[][]) => {
-    const allUserPoints = currentStrokes.flat();
-    const drawnStrokeCount = currentStrokes.filter((stroke) => stroke.length > 1).length;
-    if (drawnStrokeCount < expectedStrokeCount) {
-      setHelperMessage(`继续下一笔（${drawnStrokeCount}/${expectedStrokeCount}）`);
+    if (!hasValidPath) {
+      setHelperMessage('这条线今天打盹啦，返回换一个试试');
       return;
     }
+    const allUserPoints = currentStrokes.flat();
+    const drawnStrokeCount = currentStrokes.filter((stroke) => stroke.length > 1).length;
 
     if (allUserPoints.length < successConfig.minPoints) {
       playSound('guide');
@@ -280,7 +298,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     onAttemptAnalyzed(attempt);
 
     let coveredCount = 0;
-    const coverageThreshold = successConfig.coverageThreshold;
+    const coverageThreshold = successConfig.coverageThreshold * unitScale;
 
     for (const targetP of pathPoints) {
       let isCovered = false;
@@ -301,6 +319,11 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       setHelperMessage('太棒啦，完成啦');
       setReturnBubble(null);
       window.setTimeout(onComplete, 450);
+      return;
+    }
+
+    if (drawnStrokeCount < expectedStrokeCount) {
+      setHelperMessage(`继续下一笔（${drawnStrokeCount}/${expectedStrokeCount}）`);
       return;
     }
 
@@ -395,7 +418,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                 guideFlash ? 'animate-[shake_0.5s_ease-in-out]' : ''
               }`}
             >
-              <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
+              <svg viewBox={item.viewBox} className="absolute inset-0 w-full h-full pointer-events-none">
                 <defs>
                   <path id="tracePath" d={item.svgPath} />
                   <filter id="glow">
@@ -407,18 +430,26 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   </filter>
                 </defs>
 
-                <use
-                  href="#tracePath"
-                  stroke={guideFlash ? '#fb7185' : '#e5e7eb'}
-                  strokeWidth="12"
-                  strokeDasharray="16 16"
+                <path
+                  d={item.svgPath}
+                  stroke="#d1d5db"
+                  strokeWidth={traceStrokeWidth}
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="transition-colors duration-300"
+                  opacity="0.92"
+                />
+                <path
+                  d={item.svgPath}
+                  stroke={guideFlash ? '#fb7185' : '#e5e7eb'}
+                  strokeWidth={Math.max(2, traceStrokeWidth * 0.58)}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
                 />
 
-                {difficultyMode === 'guide' && !isDemonstrating && (
+                {difficultyMode === 'guide' && !isDemonstrating && hasValidPath && (
                   <polyline
                     points={pathPoints
                       .slice(nextGuideIndex, Math.min(pathPoints.length, nextGuideIndex + 18))
@@ -426,7 +457,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                       .join(' ')}
                     fill="none"
                     stroke="#93c5fd"
-                    strokeWidth="10"
+                    strokeWidth={guideStrokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     opacity="0.95"
@@ -434,31 +465,38 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                 )}
 
                 {!isDemonstrating &&
+                  hasValidPath &&
                   guides.map((guide) => (
                     <g
                       key={guide.id}
                       transform={`translate(${guide.x}, ${guide.y})`}
                       className="pointer-events-none transition-opacity duration-300 opacity-90"
                     >
-                      <circle r="4" fill="#0ea5e9" stroke="white" strokeWidth="1" className="drop-shadow-sm" />
+                      <circle
+                        r={guideBubbleRadius}
+                        fill="#0ea5e9"
+                        stroke="white"
+                        strokeWidth={Math.max(0.8, unitScale)}
+                        className="drop-shadow-sm"
+                      />
                       <text
-                        y="1.5"
+                        y={guideBubbleRadius * 0.35}
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fill="white"
-                        fontSize="5"
+                        fontSize={Math.max(4, 5 * unitScale)}
                         fontFamily="Varela Round, sans-serif"
                         fontWeight="bold"
                       >
                         {guide.id}
                       </text>
 
-                      <g transform={`rotate(${guide.angle}) translate(9, 0)`}>
+                      <g transform={`rotate(${guide.angle}) translate(${Math.max(7, 9 * unitScale)}, 0)`}>
                         <path
                           d="M 0 -2 L 3 0 L 0 2"
                           fill="none"
                           stroke="#0ea5e9"
-                          strokeWidth="1.5"
+                          strokeWidth={Math.max(1.2, 1.5 * unitScale)}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
@@ -466,12 +504,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                     </g>
                   ))}
 
-                {isDemonstrating && (
+                {isDemonstrating && hasValidPath && (
                   <>
                     <use
                       href="#tracePath"
                       stroke="#fbbf24"
-                      strokeWidth="12"
+                      strokeWidth={traceStrokeWidth}
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -493,7 +531,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                     points={stroke.map((point) => `${point.x},${point.y}`).join(' ')}
                     fill="none"
                     stroke="#0ea5e9"
-                    strokeWidth="12"
+                    strokeWidth={traceStrokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -502,14 +540,20 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   points={currentStroke.map((point) => `${point.x},${point.y}`).join(' ')}
                   fill="none"
                   stroke="#0ea5e9"
-                  strokeWidth="12"
+                  strokeWidth={traceStrokeWidth}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
 
-                {!isDemonstrating && returnBubble && (
+                {!isDemonstrating && returnBubble && hasValidPath && (
                   <g transform={`translate(${returnBubble.x}, ${returnBubble.y})`}>
-                    <circle r="5.6" fill="#38bdf8" stroke="white" strokeWidth="1.5" opacity="0.95" />
+                    <circle
+                      r={Math.max(4.6, 5.6 * unitScale)}
+                      fill="#38bdf8"
+                      stroke="white"
+                      strokeWidth={Math.max(1.2, 1.5 * unitScale)}
+                      opacity="0.95"
+                    />
                     <path
                       d="M -2 0 L 2 -4 M 2 -4 L 2 2"
                       fill="none"
@@ -537,6 +581,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
               />
             </div>
 
+            {!hasValidPath && (
+              <div className="mt-5 rounded-2xl bg-yellow-50 border border-yellow-200 px-4 py-3 text-center">
+                <p className="text-sm font-black text-yellow-800">这条线今天打盹啦</p>
+                <p className="text-xs font-bold text-yellow-700 mt-1">点左上角返回，换一个字母/数字/线条继续</p>
+              </div>
+            )}
             {isShapeChallenge && <p className="text-sm text-ocean-600 font-black mb-2">10-20 秒线条小挑战</p>}
             <p className="mt-6 text-gray-400 font-bold text-lg">{isDemonstrating ? '看这里！' : helperMessage}</p>
             {!isDemonstrating && <p className="text-xs text-gray-400 mt-1">小鲨鱼在陪你慢慢练习</p>}

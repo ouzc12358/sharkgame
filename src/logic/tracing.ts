@@ -1,5 +1,6 @@
 import { Point } from '../../types';
 import { MissionItem } from './missions';
+import { clampToViewBox, parseViewBox } from './viewBox';
 
 export type LearningCategory = 'letters' | 'numbers' | 'shapes';
 
@@ -10,58 +11,83 @@ export const dist = (p1: Point, p2: Point) => {
 };
 
 export const getPathPoints = (svgPathString: string, numPoints = 100): Point[] => {
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', svgPathString);
-  const length = path.getTotalLength();
-  const points: Point[] = [];
+  if (!svgPathString) return [];
+  try {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', svgPathString);
+    const length = path.getTotalLength();
+    if (!Number.isFinite(length) || length <= 0) return [];
 
-  for (let i = 0; i <= numPoints; i++) {
-    const p = path.getPointAtLength((i / numPoints) * length);
-    points.push({ x: p.x, y: p.y });
+    const points: Point[] = [];
+    for (let i = 0; i <= numPoints; i++) {
+      const p = path.getPointAtLength((i / numPoints) * length);
+      points.push({ x: p.x, y: p.y });
+    }
+    return points;
+  } catch {
+    return [];
   }
-  return points;
 };
 
-export const getStrokeGuides = (d: string) => {
+export const getStrokeGuides = (d: string, viewBox?: string) => {
   if (!d) return [];
+  const bounds = parseViewBox(viewBox);
   const segments = d.split(/(?=[Mm])/).filter((s) => s.trim().length > 0);
 
-  const rawGuides = segments
-    .map((seg, i) => {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', seg);
-      const len = path.getTotalLength();
-      if (len === 0) return null;
+  try {
+    const rawGuides = segments
+      .map((seg, i) => {
+        try {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', seg);
+          const len = path.getTotalLength();
+          if (!Number.isFinite(len) || len <= 0) return null;
 
-      const start = path.getPointAtLength(0);
-      const offset = Math.min(8, len / 2);
-      const end = path.getPointAtLength(offset);
-      const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+          const start = path.getPointAtLength(0);
+          const offset = Math.min(bounds.width * 0.08, len / 2);
+          const end = path.getPointAtLength(offset);
+          const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
 
+          return {
+            id: i + 1,
+            x: start.x,
+            y: start.y,
+            angle,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((g): g is { id: number; x: number; y: number; angle: number } => Boolean(g));
+
+    const overlapDistance = Math.max(2.5, Math.min(bounds.width, bounds.height) * 0.04);
+    const spreadOffset = Math.max(4.5, Math.min(bounds.width, bounds.height) * 0.07);
+    const pad = Math.max(1, Math.min(bounds.width, bounds.height) * 0.06);
+
+    return rawGuides.map((guide, index) => {
+      const overlapping = rawGuides
+        .slice(0, index)
+        .filter((g) => dist({ x: g.x, y: g.y }, { x: guide.x, y: guide.y }) < overlapDistance).length;
+
+      if (overlapping === 0) return guide;
+
+      const radialAngle = (guide.angle + overlapping * 70) * (Math.PI / 180);
+      const offset = spreadOffset * overlapping;
+      const moved = clampToViewBox(
+        guide.x + Math.cos(radialAngle) * offset,
+        guide.y + Math.sin(radialAngle) * offset,
+        bounds,
+        pad
+      );
       return {
-        id: i + 1,
-        x: start.x,
-        y: start.y,
-        angle,
+        ...guide,
+        x: moved.x,
+        y: moved.y,
       };
-    })
-    .filter((g): g is { id: number; x: number; y: number; angle: number } => Boolean(g));
-
-  return rawGuides.map((guide, index) => {
-    const overlapping = rawGuides
-      .slice(0, index)
-      .filter((g) => dist({ x: g.x, y: g.y }, { x: guide.x, y: guide.y }) < 4).length;
-
-    if (overlapping === 0) return guide;
-
-    const radialAngle = (guide.angle + overlapping * 70) * (Math.PI / 180);
-    const offset = 7 * overlapping;
-    return {
-      ...guide,
-      x: Math.max(8, Math.min(92, guide.x + Math.cos(radialAngle) * offset)),
-      y: Math.max(8, Math.min(92, guide.y + Math.sin(radialAngle) * offset)),
-    };
-  });
+    });
+  } catch {
+    return [];
+  }
 };
 
 export const getPracticeItemKey = (
