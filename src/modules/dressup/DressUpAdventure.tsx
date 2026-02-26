@@ -77,12 +77,12 @@ const COLOR_CHALLENGE_HINT: Partial<Record<SharkColor, { category: LearningCateg
 };
 
 const SLOT_BODY_POSITIONS: Record<SharkAccessorySlot, string> = {
-  hat: 'md:col-start-1 md:row-start-1',
-  item: 'md:col-start-3 md:row-start-1',
-  face: 'md:col-start-1 md:row-start-2',
-  neck: 'md:col-start-3 md:row-start-2',
-  clothes: 'md:col-start-1 md:row-start-3',
-  shoes: 'md:col-start-2 md:row-start-3',
+  hat: 'min-[700px]:col-start-1 min-[700px]:row-start-1',
+  item: 'min-[700px]:col-start-3 min-[700px]:row-start-1',
+  face: 'min-[700px]:col-start-1 min-[700px]:row-start-2',
+  neck: 'min-[700px]:col-start-3 min-[700px]:row-start-2',
+  clothes: 'min-[700px]:col-start-1 min-[700px]:row-start-3',
+  shoes: 'min-[700px]:col-start-2 min-[700px]:row-start-3',
 };
 
 const getPointerXY = (event: PointerEvent | React.PointerEvent) => ({
@@ -408,10 +408,10 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           <div className="rounded-3xl border-4 border-ocean-100 bg-gradient-to-b from-white to-ocean-50/60 p-3 md:p-4 mb-5">
             <p className="text-sm font-black text-ocean-800 mb-3">把配件拖到中间大鲨鱼身上（或点一下配件）</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-3 gap-3">
-              <div className="rounded-2xl border border-ocean-100 bg-white p-2 md:col-start-2 md:row-start-1">
+            <div className="grid grid-cols-1 min-[700px]:grid-cols-3 min-[700px]:grid-rows-3 gap-3">
+              <div className="rounded-2xl border border-ocean-100 bg-white p-2 min-[700px]:col-start-2 min-[700px]:row-start-1">
                 <p className="text-xs font-black text-ocean-800 mb-2">颜色</p>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-6 min-[700px]:grid-cols-4 gap-2">
                   {SHARK_COLOR_OPTIONS.map((color) => (
                     <button
                       key={color}
@@ -428,11 +428,11 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 
               <div
                 ref={dropZoneRef}
-                className={`rounded-3xl border-4 p-3 md:p-4 flex items-center justify-center transition-colors md:col-start-2 md:row-start-2 ${
+                className={`rounded-3xl border-4 p-3 min-[700px]:p-4 flex items-center justify-center transition-colors min-[700px]:col-start-2 min-[700px]:row-start-2 ${
                   isDropActive ? 'border-ocean-400 bg-ocean-50' : 'border-ocean-100 bg-white'
                 }`}
               >
-                <div className="w-72 h-52 md:w-72 md:h-56">
+                <div className="w-72 h-52 min-[700px]:w-72 min-[700px]:h-56">
                   <FriendlyShark
                     className="w-full h-full"
                     config={sharkConfig}
