@@ -181,7 +181,6 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   onUpdateImage,
   styleTokens,
 }) => {
-  const [activeSlot, setActiveSlot] = useState<SharkAccessorySlot>('hat');
   const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
   const [isChallengeStarted, setIsChallengeStarted] = useState(false);
   const [dragging, setDragging] = useState<{ slot: SharkAccessorySlot; id: SharkAccessoryId | 'none'; icon: string; x: number; y: number } | null>(null);
@@ -420,40 +419,32 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           </div>
 
           <div>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <p className="text-base font-black text-ocean-900 mb-2">换配件（一级直接选择）</p>
+            <div className="space-y-3">
               {SHARK_ACCESSORY_SLOT_ORDER.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setActiveSlot(slot)}
-                  className={`px-4 py-2 rounded-xl border text-sm font-black ${
-                    activeSlot === slot
-                      ? 'bg-ocean-500 text-white border-ocean-500'
-                      : 'bg-white text-ocean-900 border-gray-200'
-                  }`}
-                >
-                  {SHARK_ACCESSORY_SLOT_LABELS[slot]}
-                </button>
+                <div key={slot} className="rounded-2xl border border-gray-200 p-3">
+                  <p className="text-sm font-black text-ocean-800 mb-2">{SHARK_ACCESSORY_SLOT_LABELS[slot]}</p>
+                  <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                    {optionsBySlot[slot].map((option) => {
+                      const isSelected = sharkConfig.accessories[slot] === option.id;
+                      return (
+                        <button
+                          key={`${slot}:${option.id}`}
+                          onPointerDown={(event) => beginDragOption(event, slot, option.id, option.icon)}
+                          onClick={() => handleOptionClick(slot, option.id)}
+                          className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
+                            isSelected ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
+                          }`}
+                          style={{ touchAction: 'none' }}
+                        >
+                          <p className="text-2xl">{option.icon}</p>
+                          <p className="text-[11px] font-black text-gray-600">{option.label}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-            </div>
-
-            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-              {optionsBySlot[activeSlot].map((option) => {
-                const isSelected = sharkConfig.accessories[activeSlot] === option.id;
-                return (
-                  <button
-                    key={`${activeSlot}:${option.id}`}
-                    onPointerDown={(event) => beginDragOption(event, activeSlot, option.id, option.icon)}
-                    onClick={() => handleOptionClick(activeSlot, option.id)}
-                    className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
-                      isSelected ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
-                    }`}
-                    style={{ touchAction: 'none' }}
-                  >
-                    <p className="text-2xl">{option.icon}</p>
-                    <p className="text-[11px] font-black text-gray-600">{option.label}</p>
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>

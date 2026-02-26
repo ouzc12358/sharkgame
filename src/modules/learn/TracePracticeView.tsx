@@ -11,7 +11,7 @@ import {
   TraceMetricLevels,
   computeTraceMetrics,
 } from '../../logic/metrics';
-import { dist, getPathPoints, getStrokeGuides, LearningCategory } from '../../logic/tracing';
+import { dist, getPathPoints, getStrokeGuides, LearningCategory, splitPathStrokes } from '../../logic/tracing';
 import { parseViewBox } from '../../logic/viewBox';
 import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
@@ -101,12 +101,26 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewBoxBounds = useMemo(() => parseViewBox(item.viewBox), [item.viewBox]);
   const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item.svgPath]);
+  const strokePathPoints = useMemo(
+    () => splitPathStrokes(item.svgPath).map((segment) => getPathPoints(segment, 70)).filter((points) => points.length > 0),
+    [item.svgPath]
+  );
   const computedGuides = useMemo(() => getStrokeGuides(item.svgPath, item.viewBox), [item.svgPath, item.viewBox]);
   const guides = useMemo(
     () => (item.strokeGuides && item.strokeGuides.length > 0 ? item.strokeGuides : computedGuides),
     [item.strokeGuides, computedGuides]
   );
-  const expectedStrokeCount = Math.max(1, item.strokeCountHint || guides.length);
+  const expectedStrokeCount = Math.max(
+    1,
+    item.strokeCountHint || item.strokeGuides?.length || strokePathPoints.length || guides.length
+  );
+  const orderedGuides = guides.slice(0, expectedStrokeCount);
+  const activeStrokeIndex = Math.min(strokes.length, expectedStrokeCount - 1);
+  const activeGuidePoints =
+    strokePathPoints[activeStrokeIndex] && strokePathPoints[activeStrokeIndex].length > 0
+      ? strokePathPoints[activeStrokeIndex]
+      : pathPoints;
+  const activeGuide = orderedGuides[activeStrokeIndex] || orderedGuides[0] || null;
   const hasValidPath = pathPoints.length > 0;
   const unitScale = Math.max(0.5, Math.min(2.5, Math.min(viewBoxBounds.width, viewBoxBounds.height) / 100));
   const traceStrokeWidth = Math.max(5, 12 * unitScale);
@@ -141,7 +155,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setCurrentStroke([]);
     setNextGuideIndex(0);
     setReturnBubble(null);
-    setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '请沿着线写');
+    setHelperMessage(isShapeChallenge ? '从第1笔开始画线' : '从第1笔起点开始写');
     setIsDemonstrating(!skipDemo);
     
     let wordTimer: number | null = null;
@@ -171,7 +185,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setCurrentStroke([]);
     setNextGuideIndex(0);
     setReturnBubble(null);
-    setHelperMessage(isShapeChallenge ? '从1号起点开始画线' : '再试一次，慢慢来');
+    setHelperMessage(isShapeChallenge ? '从第1笔开始画线' : '再试一次，从第1笔开始');
     setIsDemonstrating(!skipDemo);
     if (supportsCaseToggle) {
       speakLetterThenWord(item.char, item.word);
@@ -202,15 +216,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     };
   };
 
-  const findNearestPathPoint = (point: Point) => {
-    if (pathPoints.length === 0) {
+  const findNearestPathPoint = (point: Point, sourcePoints: Point[]) => {
+    if (sourcePoints.length === 0) {
       return { point, index: 0, distance: Number.POSITIVE_INFINITY };
     }
     let minDistance = Number.POSITIVE_INFINITY;
-    let nearestPoint = pathPoints[0];
+    let nearestPoint = sourcePoints[0];
     let nearestIndex = 0;
-    for (let i = 0; i < pathPoints.length; i++) {
-      const candidate = pathPoints[i];
+    for (let i = 0; i < sourcePoints.length; i++) {
+      const candidate = sourcePoints[i];
       const d = dist(point, candidate);
       if (d < minDistance) {
         minDistance = d;
@@ -230,7 +244,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     isDragging.current = true;
     playSound('start');
     const rawPoint = getCanvasPoint(e);
-    const nearest = findNearestPathPoint(rawPoint);
+    const nearest = findNearestPathPoint(rawPoint, activeGuidePoints);
     if (nearest.distance <= scaledDifficulty.snapDistance) {
       setNextGuideIndex((prev) => Math.max(prev, nearest.index));
       setCurrentStroke([{ ...nearest.point, t: rawPoint.t }]);
@@ -248,7 +262,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     if (!isDragging.current || isDemonstrating) return;
     e.preventDefault();
     const rawPoint = getCanvasPoint(e);
-    const nearest = findNearestPathPoint(rawPoint);
+    const nearest = findNearestPathPoint(rawPoint, activeGuidePoints);
     let drawPoint = rawPoint;
 
     if (nearest.distance <= scaledDifficulty.snapDistance) {
@@ -270,9 +284,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const handleEnd = () => {
     if (!isDragging.current) return;
     isDragging.current = false;
+    if (currentStroke.length < 2) {
+      setCurrentStroke([]);
+      setHelperMessage(`第${Math.min(expectedStrokeCount, strokes.length + 1)}笔再写长一点`);
+      return;
+    }
     const newStrokes = [...strokes, currentStroke];
     setStrokes(newStrokes);
     setCurrentStroke([]);
+    setNextGuideIndex(0);
     checkSuccess(newStrokes);
   };
 
@@ -290,6 +310,13 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       window.setTimeout(() => setGuideFlash(false), 380);
       setHelperMessage('还差一点点，再写一笔就完成啦');
       speak('还差一点点，再写一笔', 'zh-CN', 0.6);
+      return;
+    }
+
+    if (drawnStrokeCount < expectedStrokeCount) {
+      const nextStroke = Math.min(expectedStrokeCount, drawnStrokeCount + 1);
+      setHelperMessage(`继续第${nextStroke}笔（共${expectedStrokeCount}笔）`);
+      setReturnBubble(null);
       return;
     }
 
@@ -316,18 +343,40 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     }
 
     const coverage = coveredCount / pathPoints.length;
-    const isSuccess = coverage > successConfig.successCoverage && metrics.scores.follow > successConfig.successFollow;
+    let minIndex = pathPoints.length;
+    let maxIndex = 0;
+    for (const point of allUserPoints) {
+      const nearest = findNearestPathPoint(point, pathPoints);
+      minIndex = Math.min(minIndex, nearest.index);
+      maxIndex = Math.max(maxIndex, nearest.index);
+    }
+    const pathSpan = Math.max(1, pathPoints.length - 1);
+    const progressRatio = (maxIndex - minIndex) / pathSpan;
+    const startsNearStart = minIndex <= pathPoints.length * 0.2;
+    const reachesPathTail = maxIndex >= pathPoints.length * 0.86;
+
+    const guideStartTolerance = Math.max(8, 16 * unitScale);
+    const orderedStartOk =
+      orderedGuides.length === expectedStrokeCount
+        ? currentStrokes.slice(0, expectedStrokeCount).every((stroke, index) => {
+            if (!stroke[0]) return false;
+            return dist(stroke[0], orderedGuides[index]) <= guideStartTolerance;
+          })
+        : true;
+
+    const isSuccess =
+      coverage > successConfig.successCoverage &&
+      metrics.scores.follow > successConfig.successFollow &&
+      progressRatio > 0.7 &&
+      startsNearStart &&
+      reachesPathTail &&
+      orderedStartOk;
 
     if (isSuccess) {
       playSound('end');
       setHelperMessage('太棒啦，完成啦');
       setReturnBubble(null);
       window.setTimeout(onComplete, 450);
-      return;
-    }
-
-    if (drawnStrokeCount < expectedStrokeCount) {
-      setHelperMessage(`继续下一笔（${drawnStrokeCount}/${expectedStrokeCount}）`);
       return;
     }
 
@@ -341,6 +390,11 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       setNextGuideIndex(0);
       setReturnBubble(null);
     }, 280);
+    if (!orderedStartOk) {
+      setHelperMessage(`按 ${Array.from({ length: expectedStrokeCount }, (_, i) => i + 1).join('-')} 号顺序再来一次`);
+      speak('按气泡顺序一笔一划来，我们再试一次', 'zh-CN', 0.58);
+      return;
+    }
     if (difficultyMode === 'challenge') {
       setHelperMessage('很棒的尝试，已清空，按右上角↺可再来一次');
       speak('很棒的尝试，已经清空，我们再来一次', 'zh-CN', 0.6);
@@ -453,10 +507,10 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   opacity="0.9"
                 />
 
-                {difficultyMode === 'guide' && !isDemonstrating && hasValidPath && (
+                {difficultyMode === 'guide' && !isDemonstrating && hasValidPath && activeGuidePoints.length > 0 && (
                   <polyline
-                    points={pathPoints
-                      .slice(nextGuideIndex, Math.min(pathPoints.length, nextGuideIndex + 18))
+                    points={activeGuidePoints
+                      .slice(nextGuideIndex, Math.min(activeGuidePoints.length, nextGuideIndex + 18))
                       .map((point) => `${point.x},${point.y}`)
                       .join(' ')}
                     fill="none"
@@ -470,15 +524,17 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
                 {!isDemonstrating &&
                   hasValidPath &&
-                  guides.map((guide) => (
+                  orderedGuides.map((guide, index) => (
                     <g
                       key={guide.id}
                       transform={`translate(${guide.x}, ${guide.y})`}
-                      className="pointer-events-none transition-opacity duration-300 opacity-90"
+                      className={`pointer-events-none transition-opacity duration-300 ${
+                        index === activeStrokeIndex ? 'opacity-95' : index < activeStrokeIndex ? 'opacity-45' : 'opacity-20'
+                      }`}
                     >
                       <circle
                         r={guideBubbleRadius}
-                        fill="#0ea5e9"
+                        fill={index === activeStrokeIndex ? '#0ea5e9' : index < activeStrokeIndex ? '#22c55e' : '#94a3b8'}
                         stroke="white"
                         strokeWidth={Math.max(0.8, unitScale)}
                         className="drop-shadow-sm"
@@ -495,7 +551,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                         {guide.id}
                       </text>
 
-                      <g transform={`rotate(${guide.angle}) translate(${Math.max(7, 9 * unitScale)}, 0)`}>
+                      {index === activeStrokeIndex && (
+                        <g transform={`rotate(${guide.angle}) translate(${Math.max(7, 9 * unitScale)}, 0)`}>
                         <path
                           d="M 0 -2 L 3 0 L 0 2"
                           fill="none"
@@ -504,7 +561,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
-                      </g>
+                        </g>
+                      )}
                     </g>
                   ))}
 
@@ -592,7 +650,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
               </div>
             )}
             {isShapeChallenge && <p className="text-sm text-ocean-600 font-black mb-2">10-20 秒线条小挑战</p>}
-            <p className="mt-6 text-gray-400 font-bold text-lg">{isDemonstrating ? '看这里！' : helperMessage}</p>
+            {activeGuide && !isDemonstrating && (
+              <p className="mt-4 text-ocean-700 font-black text-sm">
+                当前第{Math.min(expectedStrokeCount, activeStrokeIndex + 1)}笔，跟着 {activeGuide.id} 号气泡
+              </p>
+            )}
+            <p className="mt-2 text-gray-400 font-bold text-lg">{isDemonstrating ? '看这里！' : helperMessage}</p>
             {!isDemonstrating && <p className="text-xs text-gray-400 mt-1">小鲨鱼在陪你慢慢练习</p>}
           </div>
         </div>

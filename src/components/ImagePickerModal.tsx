@@ -20,56 +20,119 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 }) => {
   const [selected, setSelected] = useState<string>(currentImage || STICKERS[0].src);
 
-  const itemTags = useMemo(
-    () =>
-      [
-        item.char,
-        item.char.toUpperCase(),
-        item.char.toLowerCase(),
-        item.word.toLowerCase(),
-        ...(item.stickerTags || []),
-      ].map((tag) => tag.trim()),
-    [item]
-  );
+  const itemSignals = useMemo(() => {
+    const rawTags = item.stickerTags || [];
+    const normalizedWord = item.word.toLowerCase();
+    const isLetter = /^[A-Z]$/.test(item.char);
+    const isNumber = /^[0-9]$/.test(item.char);
+    const isShape = !isLetter && !isNumber;
+    const relevanceKeys = new Set<string>();
+    const fallbackTags = new Set<string>();
+
+    if (isLetter) {
+      relevanceKeys.add(`letter:${item.char.toUpperCase()}`);
+      relevanceKeys.add(`word:${normalizedWord}`);
+      fallbackTags.add(item.char.toLowerCase());
+      fallbackTags.add(normalizedWord);
+    } else if (isNumber) {
+      relevanceKeys.add(`number:${item.char}`);
+      relevanceKeys.add(`count:${item.char}`);
+      fallbackTags.add(item.char);
+      fallbackTags.add(`count-${item.char}`);
+    } else if (isShape) {
+      for (const tag of rawTags) {
+        if (tag.startsWith('shape-')) {
+          relevanceKeys.add(`shape:${tag.replace('shape-', '')}`);
+        }
+        if (tag.startsWith('line-')) {
+          relevanceKeys.add('shape:line');
+        }
+      }
+      if (item.char === '○') relevanceKeys.add('shape:circle');
+      if (item.char === '|') relevanceKeys.add('shape:line');
+      if (item.char === '—') relevanceKeys.add('shape:line');
+      if (item.char === '/') relevanceKeys.add('shape:line');
+      if (item.char === '⌒') relevanceKeys.add('shape:arc');
+      if (item.char === '⚡') relevanceKeys.add('shape:zigzag');
+      if (item.char === '✚') relevanceKeys.add('shape:cross');
+      fallbackTags.add('shape');
+      fallbackTags.add('line');
+      fallbackTags.add('circle');
+      fallbackTags.add('arc');
+      fallbackTags.add('zigzag');
+      fallbackTags.add('cross');
+    }
+
+    for (const tag of rawTags) {
+      const clean = tag.trim().toLowerCase();
+      if (!clean) continue;
+      fallbackTags.add(clean);
+      if (/^[a-z]$/.test(clean)) relevanceKeys.add(`letter:${clean.toUpperCase()}`);
+      if (/^[0-9]$/.test(clean)) relevanceKeys.add(`number:${clean}`);
+      if (clean.startsWith('count-')) relevanceKeys.add(`count:${clean.replace('count-', '')}`);
+      if (clean.startsWith('shape-')) relevanceKeys.add(`shape:${clean.replace('shape-', '')}`);
+      if (/^[a-z]{2,}$/.test(clean)) relevanceKeys.add(`word:${clean}`);
+    }
+
+    relevanceKeys.add('ocean');
+    fallbackTags.add('ocean');
+
+    return {
+      relevanceKeys: Array.from(relevanceKeys),
+      fallbackTags: Array.from(fallbackTags),
+      isLetter,
+      isNumber,
+      isShape,
+    };
+  }, [item]);
 
   const recommendedStickers = useMemo(
     () =>
       STICKERS.map((sticker) => {
         const normalizedTags = sticker.tags.map((tag) => tag.toLowerCase());
+        const normalizedRelevance = sticker.relevance.map((tag) => tag.toLowerCase());
         let score = 0;
-        for (const rawTag of itemTags) {
-          const tag = rawTag.toLowerCase();
-          if (!tag) continue;
-          if (normalizedTags.includes(tag)) score += 5;
-          else if (normalizedTags.some((candidate) => candidate.includes(tag) || tag.includes(candidate))) score += 2;
+        for (const key of itemSignals.relevanceKeys) {
+          const token = key.toLowerCase();
+          if (normalizedRelevance.includes(token)) score += 40;
+          if (token.startsWith('word:')) {
+            const word = token.replace('word:', '');
+            if (normalizedTags.includes(word)) score += 10;
+          }
         }
-        if (normalizedTags.includes('ocean')) score += 1;
+        for (const tag of itemSignals.fallbackTags) {
+          if (normalizedTags.includes(tag)) score += 6;
+        }
+        if (normalizedTags.includes('ocean')) score += 2;
         return { sticker, score };
       })
+        .filter((entry) => entry.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 6)
         .map((entry) => entry.sticker),
-    [itemTags]
+    [itemSignals]
   );
+
+  const finalRecommended = recommendedStickers.length > 0 ? recommendedStickers : STICKERS.slice(0, 6);
 
   useEffect(() => {
     if (!isOpen) return;
-    setSelected(currentImage || recommendedStickers[0]?.src || STICKERS[0].src);
-    if (/^[A-Z]$/.test(item.char)) {
+    setSelected(currentImage || finalRecommended[0]?.src || STICKERS[0].src);
+    if (itemSignals.isLetter) {
       speakLetterThenWord(item.char, item.phonics?.en || item.word);
       return;
     }
-    if (/^[0-9]$/.test(item.char)) {
+    if (itemSignals.isNumber) {
       speak(item.phonics?.zh || `数字${item.char}`, 'zh-CN', 0.56);
       window.setTimeout(() => speak(`${item.char}条小鱼在游泳`, 'zh-CN', 0.58), 380);
       return;
     }
-    speak(`${item.word}像小泡泡一样`, 'zh-CN', 0.58);
-  }, [isOpen, currentImage, item, recommendedStickers]);
+    speak(`${item.word}也能配上对应的小贴纸`, 'zh-CN', 0.58);
+  }, [isOpen, currentImage, item, finalRecommended, itemSignals]);
 
-  const handleSelectSticker = (src: string, labelZh: string) => {
+  const handleSelectSticker = (src: string, labelZh: string, phraseZh: string) => {
     setSelected(src);
-    speak(`${labelZh}，好可爱`, 'zh-CN', 0.6);
+    speak(phraseZh || `${labelZh}，好可爱`, 'zh-CN', 0.6);
   };
 
   if (!isOpen) return null;
@@ -98,10 +161,10 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
         <div className="mb-4">
           <p className="text-sm font-black text-ocean-800 mb-2">推荐贴纸</p>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {recommendedStickers.map((option) => (
+            {finalRecommended.map((option) => (
               <button
                 key={`recommended-${option.id}`}
-                onClick={() => handleSelectSticker(option.src, option.labelZh)}
+                onClick={() => handleSelectSticker(option.src, option.labelZh, option.phraseZh)}
                 className={`rounded-xl border-2 p-2 bg-white transition-all active:scale-95 ${
                   selected === option.src ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'
                 }`}
@@ -118,7 +181,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
           {STICKERS.map((option) => (
             <button
               key={option.id}
-              onClick={() => handleSelectSticker(option.src, option.labelZh)}
+              onClick={() => handleSelectSticker(option.src, option.labelZh, option.phraseZh)}
               className={`rounded-xl border-2 p-2 bg-white transition-all active:scale-95 ${
                 selected === option.src ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-300'
               }`}

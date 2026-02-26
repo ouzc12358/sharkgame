@@ -29,10 +29,17 @@ export const getPathPoints = (svgPathString: string, numPoints = 100): Point[] =
   }
 };
 
+export const splitPathStrokes = (d: string): string[] => {
+  if (!d || !d.trim()) return [];
+  const matches = d.match(/[Mm][^Mm]*/g);
+  if (!matches || matches.length === 0) return [d];
+  return matches.map((segment) => segment.trim()).filter(Boolean);
+};
+
 export const getStrokeGuides = (d: string, viewBox?: string): StrokeGuide[] => {
   if (!d) return [];
   const bounds = parseViewBox(viewBox);
-  const segments = d.split(/(?=[Mm])/).filter((s) => s.trim().length > 0);
+  const segments = splitPathStrokes(d);
 
   try {
     const rawGuides = segments
