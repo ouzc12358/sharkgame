@@ -40,17 +40,23 @@ const LETTER_ASSOCIATIONS: Record<string, string[]> = {
   Z: ['Zebra', 'Zoo', 'Zigzag', 'Zipper'],
 };
 
-const NUMBER_ASSOCIATIONS: Record<string, string[]> = {
-  '0': ['Zero', 'Circle', 'Bubble'],
-  '1': ['One', 'Pole', 'Rocket'],
-  '2': ['Two', 'Swan', 'Zebra'],
-  '3': ['Three', 'Fish', 'Rainbow'],
-  '4': ['Four', 'Flag', 'Kite'],
-  '5': ['Five', 'Starfish', 'Hand'],
-  '6': ['Six', 'Snail', 'Shell'],
-  '7': ['Seven', 'Rainbow', 'Hill'],
-  '8': ['Eight', 'Octopus', 'Glasses'],
-  '9': ['Nine', 'Balloon', 'Hook'],
+interface NumberVisualPack {
+  primary: string;
+  supports: string[];
+  memoryHintZh: string;
+}
+
+const NUMBER_VISUAL_PACKS: Record<string, NumberVisualPack> = {
+  '0': { primary: 'Donut', supports: ['Egg'], memoryHintZh: '0像甜甜圈' },
+  '1': { primary: 'Candle', supports: ['Pole'], memoryHintZh: '1像蜡烛' },
+  '2': { primary: 'Swan', supports: ['Duck'], memoryHintZh: '2像天鹅' },
+  '3': { primary: 'Ear', supports: ['Fish'], memoryHintZh: '3像耳朵' },
+  '4': { primary: 'Flag', supports: ['Chair'], memoryHintZh: '4像旗子' },
+  '5': { primary: 'Hook', supports: ['Hand'], memoryHintZh: '5像钩子' },
+  '6': { primary: 'Snail', supports: ['Shell'], memoryHintZh: '6像蜗牛' },
+  '7': { primary: 'Boomerang', supports: ['Slide'], memoryHintZh: '7像回旋镖' },
+  '8': { primary: 'Snowman', supports: ['Glasses'], memoryHintZh: '8像雪人' },
+  '9': { primary: 'Balloon', supports: ['Hook'], memoryHintZh: '9像气球' },
 };
 
 const SHAPE_ASSOCIATIONS: Record<string, string[]> = {
@@ -78,6 +84,8 @@ const WORD_EMOJI: Record<string, string> = {
   crab: '🦀',
   dog: '🐶',
   duck: '🦆',
+  donut: '🍩',
+  candle: '🕯️',
   drum: '🥁',
   dolphin: '🐬',
   egg: '🥚',
@@ -180,6 +188,8 @@ const WORD_EMOJI: Record<string, string> = {
   flag: '🚩',
   five: '5️⃣',
   hand: '✋',
+  ear: '👂',
+  chair: '🪑',
   six: '6️⃣',
   snail: '🐌',
   seven: '7️⃣',
@@ -189,6 +199,8 @@ const WORD_EMOJI: Record<string, string> = {
   nine: '9️⃣',
   balloon: '🎈',
   hook: '🪝',
+  boomerang: '🪃',
+  snowman: '⛄',
   line: '➖',
   bridge: '🌉',
   road: '🛣️',
@@ -216,6 +228,8 @@ const WORD_ZH: Record<string, string> = {
   crab: '螃蟹',
   dog: '狗',
   duck: '鸭子',
+  donut: '甜甜圈',
+  candle: '蜡烛',
   drum: '鼓',
   dolphin: '海豚',
   egg: '鸡蛋',
@@ -318,6 +332,8 @@ const WORD_ZH: Record<string, string> = {
   flag: '旗子',
   five: '五',
   hand: '手掌',
+  ear: '耳朵',
+  chair: '椅子',
   six: '六',
   snail: '蜗牛',
   seven: '七',
@@ -327,6 +343,8 @@ const WORD_ZH: Record<string, string> = {
   nine: '九',
   balloon: '气球',
   hook: '钩子',
+  boomerang: '回旋镖',
+  snowman: '雪人',
   line: '线',
   bridge: '桥',
   road: '路',
@@ -406,6 +424,21 @@ const buildGlyphSticker = (item: LetterConfig): StickerItem => {
   };
 };
 
+const buildNumberVisualSticker = (
+  item: LetterConfig,
+  word: string,
+  memoryHintZh: string,
+  rank: 'primary' | 'support'
+): StickerItem => {
+  const base = buildWordSticker(item, word);
+  return {
+    ...base,
+    id: `${item.char.toLowerCase()}-${rank}-${word.toLowerCase()}`,
+    labelZh: `${base.labelZh}${rank === 'primary' ? '（像它）' : '（也像）'}`,
+    phraseZh: `${memoryHintZh}，像${base.labelZh}。`,
+  };
+};
+
 const buildCurrentPack = (item: LetterConfig): StickerItem[] => {
   if (/^[A-Z]$/.test(item.char)) {
     const pool = LETTER_ASSOCIATIONS[item.char] || [item.word];
@@ -414,9 +447,20 @@ const buildCurrentPack = (item: LetterConfig): StickerItem[] => {
   }
 
   if (/^[0-9]$/.test(item.char)) {
-    const pool = NUMBER_ASSOCIATIONS[item.char] || [item.word];
-    const words = Array.from(new Set([item.word, ...pool])).slice(0, 6);
-    return [...words.map((word) => buildWordSticker(item, word)), buildGlyphSticker(item)];
+    const visualPack = NUMBER_VISUAL_PACKS[item.char] || {
+      primary: item.word,
+      supports: [],
+      memoryHintZh: `数字${item.char}像这个物品`,
+    };
+    const supportWord = visualPack.supports[0];
+    const pack: StickerItem[] = [
+      buildNumberVisualSticker(item, visualPack.primary, visualPack.memoryHintZh, 'primary'),
+    ];
+    if (supportWord) {
+      pack.push(buildNumberVisualSticker(item, supportWord, visualPack.memoryHintZh, 'support'));
+    }
+    pack.push(buildGlyphSticker(item));
+    return pack;
   }
 
   const pool = SHAPE_ASSOCIATIONS[item.char] || [item.word];
@@ -456,8 +500,11 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
       return;
     }
     if (/^[0-9]$/.test(item.char)) {
+      const hint = NUMBER_VISUAL_PACKS[item.char]?.memoryHintZh;
       speak(item.phonics?.zh || `数字${item.char}`, 'zh-CN', 0.56);
-      window.setTimeout(() => speak(`${item.char}条小鱼在游泳`, 'zh-CN', 0.58), 380);
+      if (hint) {
+        window.setTimeout(() => speak(hint, 'zh-CN', 0.58), 380);
+      }
       return;
     }
     speak(`${item.word}，挑一个和它相关的贴纸吧`, 'zh-CN', 0.58);
@@ -467,6 +514,10 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
     setSelected(option.src);
     if (/^[A-Z]$/.test(item.char) && option.labelEn) {
       speakLetterThenWord(item.char, option.labelEn);
+      return;
+    }
+    if (/^[0-9]$/.test(item.char) && option.labelEn) {
+      speak(`${item.char}，像 ${option.labelEn}`, 'zh-CN', 0.58);
       return;
     }
     speak(option.phraseZh || `${option.labelZh}，好可爱`, 'zh-CN', 0.6);
@@ -492,12 +543,14 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
               <span className="text-8xl">{item.emoji}</span>
             )}
           </div>
-          <p className="text-sm font-bold text-gray-500">{item.char} 的发音联想贴纸库</p>
+          <p className="text-sm font-bold text-gray-500">
+            {/^[0-9]$/.test(item.char) ? `${item.char} 的外形记忆贴纸库` : `${item.char} 的发音联想贴纸库`}
+          </p>
         </div>
 
         <div className="mb-4">
           <p className="text-sm font-black text-ocean-800 mb-2">当前项专属贴纸包</p>
-          <div className="grid grid-cols-3 md:grid-cols-7 gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {currentPack.map((option) => (
               <button
                 key={`current-${option.id}`}
