@@ -11,100 +11,214 @@ interface ImagePickerModalProps {
   onSave: (img: string) => void;
 }
 
-const LETTER_PACK_MAP: Record<string, string[]> = {
-  A: ['apple', 'ball', 'bubble'],
-  B: ['ball', 'boat', 'bubble'],
-  C: ['crown', 'bubble', 'shell'],
-  D: ['boat', 'fish', 'shell'],
-  E: ['zebra', 'shell', 'bubble'],
-  F: ['fish', 'starfish', 'shark'],
-  G: ['fish', 'bubble', 'shell'],
-  H: ['shark', 'fish', 'starfish'],
-  I: ['boat', 'bubble', 'rainbow'],
-  J: ['fish', 'shell', 'bubble'],
-  K: ['kite', 'boat', 'ball'],
-  L: ['boat', 'ball', 'bubble'],
-  M: ['starfish', 'shell', 'rainbow'],
-  N: ['fish', 'bubble', 'boat'],
-  O: ['octopus', 'bubble', 'ball'],
-  P: ['apple', 'ball', 'shell'],
-  Q: ['crown', 'bubble', 'ball'],
-  R: ['rainbow', 'starfish', 'shell'],
-  S: ['shark', 'starfish', 'shell'],
-  T: ['boat', 'rainbow', 'fish'],
-  U: ['bubble', 'boat', 'fish'],
-  V: ['fish', 'shark', 'starfish'],
-  W: ['shark', 'fish', 'boat'],
-  X: ['kite', 'starfish', 'crown'],
-  Y: ['kite', 'rainbow', 'boat'],
-  Z: ['zebra', 'rainbow', 'crown'],
+const LETTER_STATIC_MAP: Record<string, string[]> = {
+  A: ['apple', 'ball'],
+  B: ['ball', 'boat'],
+  C: ['crown', 'shell'],
+  D: ['boat', 'fish'],
+  E: ['zebra', 'shell'],
+  F: ['fish', 'starfish'],
+  G: ['fish', 'bubble'],
+  H: ['shark', 'fish'],
+  I: ['boat', 'bubble'],
+  J: ['fish', 'shell'],
+  K: ['kite', 'boat'],
+  L: ['boat', 'ball'],
+  M: ['starfish', 'rainbow'],
+  N: ['fish', 'boat'],
+  O: ['octopus', 'bubble'],
+  P: ['apple', 'ball'],
+  Q: ['crown', 'bubble'],
+  R: ['rainbow', 'starfish'],
+  S: ['shark', 'shell'],
+  T: ['boat', 'rainbow'],
+  U: ['bubble', 'boat'],
+  V: ['fish', 'shark'],
+  W: ['shark', 'fish'],
+  X: ['kite', 'starfish'],
+  Y: ['kite', 'rainbow'],
+  Z: ['zebra', 'crown'],
 };
 
-const NUMBER_PACK_MAP: Record<string, string[]> = {
-  '0': ['bubble', 'ball', 'octopus'],
-  '1': ['boat', 'apple', 'crown'],
-  '2': ['zebra', 'fish', 'boat'],
-  '3': ['fish', 'starfish', 'rainbow'],
-  '4': ['kite', 'boat', 'crown'],
-  '5': ['starfish', 'apple', 'shell'],
-  '6': ['shell', 'fish', 'octopus'],
-  '7': ['rainbow', 'kite', 'boat'],
-  '8': ['octopus', 'bubble', 'ball'],
-  '9': ['bubble', 'fish', 'rainbow'],
+const NUMBER_STATIC_MAP: Record<string, string[]> = {
+  '0': ['bubble', 'ball'],
+  '1': ['boat', 'apple'],
+  '2': ['zebra', 'fish'],
+  '3': ['fish', 'rainbow'],
+  '4': ['kite', 'boat'],
+  '5': ['starfish', 'apple'],
+  '6': ['shell', 'fish'],
+  '7': ['rainbow', 'kite'],
+  '8': ['octopus', 'bubble'],
+  '9': ['bubble', 'fish'],
 };
 
-const SHAPE_PACK_MAP: Record<string, string[]> = {
-  '—': ['boat', 'rainbow', 'fish'],
-  '|': ['boat', 'apple', 'crown'],
-  '/': ['kite', 'zebra', 'rainbow'],
-  '○': ['bubble', 'ball', 'octopus'],
-  '⌒': ['rainbow', 'shell', 'starfish'],
-  '⚡': ['crown', 'starfish', 'kite'],
-  '✚': ['starfish', 'crown', 'kite'],
+const SHAPE_STATIC_MAP: Record<string, string[]> = {
+  '—': ['boat', 'rainbow'],
+  '|': ['boat', 'apple'],
+  '/': ['kite', 'zebra'],
+  '○': ['bubble', 'ball'],
+  '⌒': ['rainbow', 'shell'],
+  '⚡': ['crown', 'starfish'],
+  '✚': ['starfish', 'crown'],
 };
 
-const getPackIds = (item: LetterConfig) => {
-  if (/^[A-Z]$/.test(item.char)) return LETTER_PACK_MAP[item.char] || [];
-  if (/^[0-9]$/.test(item.char)) return NUMBER_PACK_MAP[item.char] || [];
-  return SHAPE_PACK_MAP[item.char] || [];
+const LETTER_SOUND_HINT: Record<string, string> = {
+  A: 'A-a / apple',
+  B: 'B-b / ball',
+  C: 'C-c / cat',
+  D: 'D-d / dog',
+  E: 'E-e / egg',
+  F: 'F-f / fish',
+  G: 'G-g / goat',
+  H: 'H-h / hat',
+  I: 'I-i / igloo',
+  J: 'J-j / jam',
+  K: 'K-k / kite',
+  L: 'L-l / lion',
+  M: 'M-m / moon',
+  N: 'N-n / nest',
+  O: 'O-o / owl',
+  P: 'P-p / pig',
+  Q: 'Q-q / queen',
+  R: 'R-r / rabbit',
+  S: 'S-s / sun',
+  T: 'T-t / turtle',
+  U: 'U-u / umbrella',
+  V: 'V-v / violin',
+  W: 'W-w / whale',
+  X: 'X-x / xylophone',
+  Y: 'Y-y / yacht',
+  Z: 'Z-z / zebra',
 };
+
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 
 const toDataUrl = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 
-const buildExclusiveSticker = (item: LetterConfig): StickerItem => {
-  const seed = item.char.charCodeAt(0) + item.word.length * 37;
-  const hue = seed % 360;
-  const bgA = `hsl(${hue}, 85%, 78%)`;
-  const bgB = `hsl(${(hue + 36) % 360}, 88%, 66%)`;
+const buildGlyphSticker = (
+  item: LetterConfig,
+  variant: 'solid' | 'dotted'
+): StickerItem => {
+  const hueSeed = (item.char.codePointAt(0) || 0) + item.word.length * 23;
+  const hue = hueSeed % 360;
+  const bgA = `hsl(${hue}, 90%, 78%)`;
+  const bgB = `hsl(${(hue + 35) % 360}, 90%, 66%)`;
+  const pathStroke = variant === 'solid' ? '#0f172a' : '#0284c7';
+  const pathStrokeWidth = variant === 'solid' ? 10 : 8;
+  const dash = variant === 'solid' ? '' : 'stroke-dasharray="8 5"';
+
+  const label = variant === 'solid' ? '外形' : '轨迹';
   const svg = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
     <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="${bgA}"/>
         <stop offset="100%" stop-color="${bgB}"/>
       </linearGradient>
     </defs>
-    <rect x="6" y="6" width="108" height="108" rx="22" fill="url(#g)"/>
-    <circle cx="60" cy="56" r="36" fill="white" fill-opacity="0.92"/>
-    <text x="60" y="68" text-anchor="middle" font-family="Verdana" font-size="44" font-weight="700" fill="#0f172a">${item.char}</text>
-    <text x="60" y="98" text-anchor="middle" font-family="Verdana" font-size="11" font-weight="600" fill="#0f172a">${item.word}</text>
+    <rect x="6" y="6" width="108" height="108" rx="22" fill="url(#bg)"/>
+    <rect x="14" y="14" width="92" height="78" rx="16" fill="rgba(255,255,255,0.85)"/>
+    <svg x="18" y="18" width="84" height="70" viewBox="${escapeXml(item.viewBox)}">
+      <path d="${escapeXml(item.svgPath)}" fill="none" stroke="${pathStroke}" stroke-width="${pathStrokeWidth}" stroke-linecap="round" stroke-linejoin="round" ${dash}/>
+    </svg>
+    <text x="60" y="102" text-anchor="middle" font-family="Verdana" font-size="12" font-weight="700" fill="#0f172a">${escapeXml(item.char)} ${label}</text>
   </svg>`;
 
-  const relationLabel = /^[A-Z]$/.test(item.char)
-    ? `字母${item.char}`
-    : /^[0-9]$/.test(item.char)
-    ? `数字${item.char}`
-    : `${item.word}`;
+  return {
+    id: `${item.char.toLowerCase()}-${variant}-glyph`,
+    labelZh: variant === 'solid' ? `${item.char}外形` : `${item.char}轨迹`,
+    src: toDataUrl(svg),
+    tags: ['glyph', item.char.toLowerCase(), item.word.toLowerCase()],
+    relevance: [`char:${item.char}`, `word:${item.word.toLowerCase()}`],
+    phraseZh:
+      variant === 'solid'
+        ? `这个贴纸就是${item.char}的外形。`
+        : `这个贴纸是${item.char}的书写轨迹。`,
+  };
+};
+
+const buildSoundSticker = (item: LetterConfig): StickerItem => {
+  const isLetter = /^[A-Z]$/.test(item.char);
+  const isNumber = /^[0-9]$/.test(item.char);
+
+  const soundLine = isLetter
+    ? LETTER_SOUND_HINT[item.char] || `${item.char} / ${item.word.toLowerCase()}`
+    : isNumber
+    ? `${item.char} / ${item.phonics?.zh || '数字'}`
+    : `${item.word} / 线条`;
+
+  const phrase = isLetter
+    ? `${item.char}，${item.word}，听起来很像。`
+    : isNumber
+    ? `数字${item.char}，跟着读一遍。`
+    : `${item.word}，跟着形状念一遍。`;
+
+  const hueSeed = (item.char.codePointAt(0) || 0) + 97;
+  const hue = hueSeed % 360;
+  const bg = `hsl(${hue}, 85%, 78%)`;
+  const textColor = '#0f172a';
+
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <rect x="6" y="6" width="108" height="108" rx="22" fill="${bg}"/>
+    <circle cx="60" cy="43" r="28" fill="white" fill-opacity="0.92"/>
+    <text x="60" y="52" text-anchor="middle" font-family="Verdana" font-size="30">${escapeXml(item.emoji)}</text>
+    <text x="60" y="86" text-anchor="middle" font-family="Verdana" font-size="12" font-weight="700" fill="${textColor}">${escapeXml(soundLine)}</text>
+    <text x="60" y="101" text-anchor="middle" font-family="Verdana" font-size="10" font-weight="600" fill="${textColor}">${escapeXml(item.word)}</text>
+  </svg>`;
 
   return {
-    id: `exclusive-${item.char}-${item.word}`,
-    labelZh: `${item.char}专属`,
-    labelEn: 'Exclusive',
+    id: `${item.char.toLowerCase()}-sound`,
+    labelZh: `${item.word}发音`,
     src: toDataUrl(svg),
-    tags: [item.char.toLowerCase(), item.word.toLowerCase(), 'exclusive'],
+    tags: ['sound', item.char.toLowerCase(), item.word.toLowerCase()],
     relevance: [`char:${item.char}`, `word:${item.word.toLowerCase()}`],
-    phraseZh: `这是${relationLabel}的专属贴纸。`,
+    phraseZh: phrase,
   };
+};
+
+const buildCountOrShapeSticker = (item: LetterConfig): StickerItem => {
+  const isNumber = /^[0-9]$/.test(item.char);
+  const amount = isNumber ? Math.max(1, Math.min(6, Number(item.char) || 1)) : 4;
+  const bubbles = Array.from({ length: amount })
+    .map((_, index) => {
+      const x = 22 + (index % 3) * 28;
+      const y = 28 + Math.floor(index / 3) * 24;
+      return `<circle cx="${x}" cy="${y}" r="8" fill="#bae6fd" stroke="#0284c7" stroke-width="1.5"/>`;
+    })
+    .join('');
+
+  const bottomText = isNumber ? `${item.char} 个小泡泡` : `${item.word} 形状贴纸`;
+
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <rect x="6" y="6" width="108" height="108" rx="22" fill="#dbeafe"/>
+    ${bubbles}
+    <text x="60" y="93" text-anchor="middle" font-family="Verdana" font-size="12" font-weight="700" fill="#0f172a">${escapeXml(bottomText)}</text>
+    <text x="60" y="106" text-anchor="middle" font-family="Verdana" font-size="10" font-weight="600" fill="#0f172a">${escapeXml(item.char)} · ${escapeXml(item.word)}</text>
+  </svg>`;
+
+  return {
+    id: `${item.char.toLowerCase()}-count-shape`,
+    labelZh: isNumber ? `${item.char}数量` : `${item.word}联想`,
+    src: toDataUrl(svg),
+    tags: ['count', 'shape', item.char.toLowerCase()],
+    relevance: [`char:${item.char}`, `word:${item.word.toLowerCase()}`],
+    phraseZh: isNumber ? `这是${item.char}个小泡泡。` : `${item.word}，像你刚写的线条。`,
+  };
+};
+
+const getStaticStickerIds = (item: LetterConfig) => {
+  if (/^[A-Z]$/.test(item.char)) return LETTER_STATIC_MAP[item.char] || [];
+  if (/^[0-9]$/.test(item.char)) return NUMBER_STATIC_MAP[item.char] || [];
+  return SHAPE_STATIC_MAP[item.char] || [];
 };
 
 const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
@@ -117,82 +231,43 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   const [selected, setSelected] = useState<string>(currentImage || STICKERS[0].src);
   const [showAll, setShowAll] = useState(false);
 
-  const exclusiveSticker = useMemo(() => buildExclusiveSticker(item), [item]);
-
-  const itemSignals = useMemo(() => {
-    const normalizedWord = item.word.toLowerCase();
-    const relevanceKeys = new Set<string>();
-    const fallbackTags = new Set<string>();
-
-    relevanceKeys.add(`char:${item.char}`);
-    relevanceKeys.add(`word:${normalizedWord}`);
-    fallbackTags.add(item.char.toLowerCase());
-    fallbackTags.add(normalizedWord);
-
-    for (const tag of item.stickerTags || []) {
-      const clean = tag.trim().toLowerCase();
-      if (!clean) continue;
-      fallbackTags.add(clean);
-      if (/^[a-z]$/.test(clean)) relevanceKeys.add(`letter:${clean.toUpperCase()}`);
-      if (/^[0-9]$/.test(clean)) relevanceKeys.add(`number:${clean}`);
-      if (clean.startsWith('shape-')) relevanceKeys.add(`shape:${clean.replace('shape-', '')}`);
-    }
-
-    return {
-      relevanceKeys: Array.from(relevanceKeys),
-      fallbackTags: Array.from(fallbackTags),
-    };
-  }, [item]);
+  const glyphSticker = useMemo(() => buildGlyphSticker(item, 'solid'), [item]);
+  const traceSticker = useMemo(() => buildGlyphSticker(item, 'dotted'), [item]);
+  const soundSticker = useMemo(() => buildSoundSticker(item), [item]);
+  const countOrShapeSticker = useMemo(() => buildCountOrShapeSticker(item), [item]);
 
   const recommendedStickers = useMemo(() => {
-    const stickerById = new Map(STICKERS.map((s) => [s.id, s]));
-    const packIds = getPackIds(item);
-    const packStickers = packIds.map((id) => stickerById.get(id)).filter((s): s is StickerItem => Boolean(s));
+    const staticById = new Map(STICKERS.map((sticker) => [sticker.id, sticker]));
+    const staticItems = getStaticStickerIds(item)
+      .map((id) => staticById.get(id))
+      .filter((sticker): sticker is StickerItem => Boolean(sticker));
 
-    const scored = STICKERS.map((sticker) => {
-      const normalizedTags = sticker.tags.map((tag) => tag.toLowerCase());
-      const normalizedRelevance = sticker.relevance.map((tag) => tag.toLowerCase());
-      let score = 0;
-
-      for (const key of itemSignals.relevanceKeys) {
-        const token = key.toLowerCase();
-        if (normalizedRelevance.includes(token)) score += 50;
-      }
-      for (const tag of itemSignals.fallbackTags) {
-        if (normalizedTags.includes(tag)) score += 8;
-      }
-
-      return { sticker, score };
-    })
-      .filter((entry) => entry.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map((entry) => entry.sticker);
-
-    const merged = [exclusiveSticker, ...packStickers, ...scored];
-    const seen = new Set<string>();
-    return merged.filter((sticker) => {
-      if (seen.has(sticker.id)) return false;
-      seen.add(sticker.id);
-      return true;
-    }).slice(0, 8);
-  }, [exclusiveSticker, item, itemSignals]);
-
-  const allStickers = useMemo(() => {
-    const merged = [exclusiveSticker, ...STICKERS];
+    const merged = [glyphSticker, traceSticker, soundSticker, countOrShapeSticker, ...staticItems];
     const seen = new Set<string>();
     return merged.filter((sticker) => {
       if (seen.has(sticker.id)) return false;
       seen.add(sticker.id);
       return true;
     });
-  }, [exclusiveSticker]);
+  }, [item, glyphSticker, traceSticker, soundSticker, countOrShapeSticker]);
+
+  const allStickers = useMemo(() => {
+    const merged = [glyphSticker, traceSticker, soundSticker, countOrShapeSticker, ...STICKERS];
+    const seen = new Set<string>();
+    return merged.filter((sticker) => {
+      if (seen.has(sticker.id)) return false;
+      seen.add(sticker.id);
+      return true;
+    });
+  }, [glyphSticker, traceSticker, soundSticker, countOrShapeSticker]);
 
   useEffect(() => {
     if (!isOpen) return;
     setShowAll(false);
-    setSelected(currentImage || recommendedStickers[0]?.src || allStickers[0].src);
+    setSelected(currentImage || recommendedStickers[0]?.src || allStickers[0]?.src || STICKERS[0].src);
+
     if (/^[A-Z]$/.test(item.char)) {
-      speakLetterThenWord(item.char, item.phonics?.en || item.word);
+      speakLetterThenWord(item.char, item.word);
       return;
     }
     if (/^[0-9]$/.test(item.char)) {
@@ -200,7 +275,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
       window.setTimeout(() => speak(`${item.char}条小鱼在游泳`, 'zh-CN', 0.58), 380);
       return;
     }
-    speak(`${item.word}也有自己的专属贴纸`, 'zh-CN', 0.58);
+    speak(`${item.word}，我们来选和它形状相关的贴纸`, 'zh-CN', 0.58);
   }, [isOpen, currentImage, item, recommendedStickers, allStickers]);
 
   const handleSelectSticker = (option: StickerItem) => {
@@ -228,12 +303,12 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
               <span className="text-8xl">{item.emoji}</span>
             )}
           </div>
-          <p className="text-sm font-bold text-gray-500">给 {item.word} 选专属贴纸</p>
+          <p className="text-sm font-bold text-gray-500">外形 + 发音 专属贴纸包（{item.char}）</p>
         </div>
 
         <div className="mb-4">
           <p className="text-sm font-black text-ocean-800 mb-2">当前项专属贴纸包</p>
-          <div className="grid grid-cols-3 md:grid-cols-8 gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-7 gap-3">
             {recommendedStickers.map((option) => (
               <button
                 key={`recommended-${option.id}`}
