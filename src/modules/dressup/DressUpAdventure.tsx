@@ -2,22 +2,26 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   DressupMissionPoolMode,
   LetterConfig,
-  SharkAccessory,
+  SharkAccessoryId,
+  SharkAccessorySlot,
   SharkColor,
   SharkConfig,
   SharkTheme,
 } from '../../../types';
-import { LETTER_ITEMS, NUMBER_ITEMS } from '../../../constants';
+import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from '../../../constants';
 import { LearningCategory } from '../../logic/tracing';
 import { TraceAttempt, TraceMetricLevels } from '../../logic/metrics';
 import FriendlyShark from '../../components/FriendlyShark';
 import TracePracticeView from '../learn/TracePracticeView';
 import {
-  SHARK_ACCESSORY_OPTIONS,
+  SHARK_ACCESSORY_OPTIONS_BY_SLOT,
+  SHARK_ACCESSORY_SLOT_LABELS,
+  SHARK_ACCESSORY_SLOT_ORDER,
   SHARK_COLOR_OPTIONS,
   SHARK_PALETTES,
   SHARK_THEME_ORDER,
   SHARK_THEME_PRESETS,
+  SharkAccessoryOption,
 } from './sharkStyle';
 
 interface DressUpAdventureProps {
@@ -29,7 +33,7 @@ interface DressUpAdventureProps {
   dressupMissionPool: DressupMissionPoolMode;
   onApplyTheme: (theme: SharkTheme) => void;
   onApplyColor: (color: SharkColor) => void;
-  onApplyAccessory: (accessory: SharkAccessory) => void;
+  onApplyAccessory: (slot: SharkAccessorySlot, accessoryId: SharkAccessoryId | 'none') => void;
   onChallengeAttempt: (item: LetterConfig, category: LearningCategory, attempt: TraceAttempt) => void;
   onChallengeComplete: (item: LetterConfig, category: LearningCategory, minutesDelta: number) => void;
   getProgressLevels: (item: LetterConfig, category: LearningCategory) => TraceMetricLevels;
@@ -39,7 +43,9 @@ interface DressUpAdventureProps {
 }
 
 interface PendingChallenge {
-  source: 'color' | 'accessory';
+  source: 'color' | 'slot';
+  slot?: SharkAccessorySlot;
+  selectionId?: SharkAccessoryId | 'none';
   category: LearningCategory;
   item: LetterConfig;
   title: string;
@@ -55,6 +61,19 @@ const COLOR_LABELS: Record<SharkColor, string> = {
   teal: '青绿色',
   yellow: '黄色',
   coral: '浅珊瑚色',
+  mint: '薄荷绿',
+  sky: '天空蓝',
+  peach: '蜜桃色',
+  violet: '浅紫色',
+};
+
+const COLOR_CHALLENGE_HINT: Partial<Record<SharkColor, { category: LearningCategory; char: string }>> = {
+  yellow: { category: 'letters', char: 'Y' },
+  blue: { category: 'letters', char: 'B' },
+  green: { category: 'letters', char: 'G' },
+  pink: { category: 'letters', char: 'P' },
+  orange: { category: 'letters', char: 'O' },
+  coral: { category: 'letters', char: 'C' },
 };
 
 const getPointerXY = (event: PointerEvent | React.PointerEvent) => ({
@@ -62,33 +81,87 @@ const getPointerXY = (event: PointerEvent | React.PointerEvent) => ({
   y: event.clientY,
 });
 
-const getChallengeByPool = (pool: DressupMissionPoolMode): { item: LetterConfig; category: LearningCategory } => {
-  if (pool === 'letters') {
-    const item = LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)];
-    return { item, category: 'letters' };
-  }
-  if (pool === 'numbers') {
-    const item = NUMBER_ITEMS[Math.floor(Math.random() * NUMBER_ITEMS.length)];
-    return { item, category: 'numbers' };
-  }
-
-  // Dress-up mode uses only letters and numbers.
-  const letterOrNumber = [
-    { category: 'letters' as const, item: LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)] },
-    { category: 'numbers' as const, item: NUMBER_ITEMS[Math.floor(Math.random() * NUMBER_ITEMS.length)] },
-  ];
-  return letterOrNumber[Math.floor(Math.random() * letterOrNumber.length)];
+const findItemInCategory = (category: LearningCategory, char: string): LetterConfig | null => {
+  const source = category === 'letters' ? LETTER_ITEMS : category === 'numbers' ? NUMBER_ITEMS : SHAPE_ITEMS;
+  return source.find((item) => item.char === char) || null;
 };
 
-const pickRandomLetterItem = (excludeChar?: string): LetterConfig => {
-  if (LETTER_ITEMS.length <= 1) return LETTER_ITEMS[0];
-  let next = LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)];
+const poolAllowsCategory = (pool: DressupMissionPoolMode, category: LearningCategory) => {
+  if (pool === 'mixed') return true;
+  if (pool === 'letters') return category === 'letters';
+  if (pool === 'numbers') return category === 'numbers';
+  return category === 'shapes';
+};
+
+const pickRandomFrom = (items: LetterConfig[], excludeChar?: string) => {
+  if (items.length === 0) return null;
+  if (items.length === 1) return items[0];
+  let next = items[Math.floor(Math.random() * items.length)];
   let guard = 0;
-  while (excludeChar && next.char === excludeChar && guard < 8) {
-    next = LETTER_ITEMS[Math.floor(Math.random() * LETTER_ITEMS.length)];
+  while (excludeChar && next.char === excludeChar && guard < 12) {
+    next = items[Math.floor(Math.random() * items.length)];
     guard += 1;
   }
   return next;
+};
+
+const pickChallengeByPool = (
+  pool: DressupMissionPoolMode,
+  preferred?: { category: LearningCategory; char?: string },
+  excludeChar?: string
+): { item: LetterConfig; category: LearningCategory } => {
+  const pickFromCategory = (category: LearningCategory, preferredChar?: string) => {
+    if (preferredChar) {
+      const matched = findItemInCategory(category, preferredChar);
+      if (matched) return matched;
+    }
+    return pickRandomFrom(
+      category === 'letters' ? LETTER_ITEMS : category === 'numbers' ? NUMBER_ITEMS : SHAPE_ITEMS,
+      excludeChar
+    );
+  };
+
+  if (preferred && poolAllowsCategory(pool, preferred.category)) {
+    const preferredItem = pickFromCategory(preferred.category, preferred.char);
+    if (preferredItem) {
+      return { category: preferred.category, item: preferredItem };
+    }
+  }
+
+  if (pool === 'letters') {
+    const item = pickFromCategory('letters');
+    return { category: 'letters', item: item || LETTER_ITEMS[0] };
+  }
+  if (pool === 'numbers') {
+    const item = pickFromCategory('numbers');
+    return { category: 'numbers', item: item || NUMBER_ITEMS[0] };
+  }
+  if (pool === 'shapes') {
+    const item = pickFromCategory('shapes');
+    return { category: 'shapes', item: item || SHAPE_ITEMS[0] };
+  }
+
+  const buckets: Array<{ category: LearningCategory; items: LetterConfig[] }> = [
+    { category: 'letters', items: LETTER_ITEMS },
+    { category: 'numbers', items: NUMBER_ITEMS },
+    { category: 'shapes', items: SHAPE_ITEMS },
+  ];
+  const candidate = buckets[Math.floor(Math.random() * buckets.length)];
+  const item = pickRandomFrom(candidate.items, excludeChar) || candidate.items[0];
+  return { category: candidate.category, item };
+};
+
+const getPoolLabel = (pool: DressupMissionPoolMode) => {
+  if (pool === 'shapes') return '线条形状';
+  if (pool === 'numbers') return '数字';
+  if (pool === 'letters') return '字母';
+  return '混合';
+};
+
+const getChallengeWord = (category: LearningCategory) => {
+  if (category === 'letters') return '字母';
+  if (category === 'numbers') return '数字';
+  return '线条';
 };
 
 const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
@@ -108,80 +181,92 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   onUpdateImage,
   styleTokens,
 }) => {
+  const [activeSlot, setActiveSlot] = useState<SharkAccessorySlot>('hat');
   const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
   const [isChallengeStarted, setIsChallengeStarted] = useState(false);
-  const [dragging, setDragging] = useState<{ accessory: SharkAccessory; icon: string; x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState<{ slot: SharkAccessorySlot; id: SharkAccessoryId | 'none'; icon: string; x: number; y: number } | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [successTip, setSuccessTip] = useState('');
   const applyActionRef = useRef<null | (() => void)>(null);
   const challengeStartRef = useRef<number>(Date.now());
-  const lastColorChallengeCharRef = useRef<string | null>(null);
+  const lastChallengeCharRef = useRef<string | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressAccessoryClickRef = useRef(false);
+  const suppressClickRef = useRef(false);
 
-  const poolLabel =
-    dressupMissionPool === 'shapes'
-      ? '字母+数字'
-      : dressupMissionPool === 'numbers'
-      ? '数字'
-      : dressupMissionPool === 'letters'
-      ? '字母'
-      : '字母+数字';
+  const optionsBySlot = SHARK_ACCESSORY_OPTIONS_BY_SLOT;
 
-  const accessoryMeta = useMemo(() => {
-    const map: Record<string, { label: string; icon: string }> = {};
-    for (const item of SHARK_ACCESSORY_OPTIONS) {
-      map[item.id] = { label: item.label, icon: item.icon };
+  const optionLookup = useMemo(() => {
+    const map: Record<string, SharkAccessoryOption> = {};
+    for (const slot of SHARK_ACCESSORY_SLOT_ORDER) {
+      for (const option of optionsBySlot[slot]) {
+        map[`${slot}:${option.id}`] = option;
+      }
     }
     return map;
-  }, []);
+  }, [optionsBySlot]);
 
   const openColorChallenge = (color: SharkColor) => {
-    const letterItem = pickRandomLetterItem(lastColorChallengeCharRef.current || undefined);
-    lastColorChallengeCharRef.current = letterItem.char;
+    const preferred = COLOR_CHALLENGE_HINT[color];
+    const challenge = pickChallengeByPool(dressupMissionPool, preferred, lastChallengeCharRef.current || undefined);
+    lastChallengeCharRef.current = challenge.item.char;
+
     applyActionRef.current = () => onApplyColor(color);
     setPendingChallenge({
       source: 'color',
-      category: 'letters',
-      item: letterItem,
-      title: `换成${COLOR_LABELS[color]}`,
-      hint: `先写一个 ${letterItem.char}，再把鲨鱼变成${COLOR_LABELS[color]}`,
-    });
-    setIsChallengeStarted(false);
-  };
-
-  const openAccessoryChallenge = (accessory: SharkAccessory) => {
-    const challenge = getChallengeByPool(dressupMissionPool);
-    const label = accessoryMeta[accessory]?.label || '配件';
-    applyActionRef.current = () => onApplyAccessory(accessory);
-    setPendingChallenge({
-      source: 'accessory',
       category: challenge.category,
       item: challenge.item,
-      title: `装备${label}`,
-      hint: `先写 ${challenge.item.char}，再把${label}戴到鲨鱼身上`,
+      title: `换成${COLOR_LABELS[color]}`,
+      hint: `先写 ${challenge.item.char}，再把鲨鱼变成${COLOR_LABELS[color]}`,
     });
     setIsChallengeStarted(false);
   };
 
-  const beginDragAccessory = (event: React.PointerEvent, accessory: SharkAccessory, icon: string) => {
+  const openSlotChallenge = (slot: SharkAccessorySlot, accessoryId: SharkAccessoryId | 'none') => {
+    const option = optionLookup[`${slot}:${accessoryId}`];
+    const preferredChallenge = option?.preferredChallenge;
+    const preferred = preferredChallenge
+      ? { category: preferredChallenge.category, char: preferredChallenge.char }
+      : undefined;
+    const challenge = pickChallengeByPool(dressupMissionPool, preferred, lastChallengeCharRef.current || undefined);
+    lastChallengeCharRef.current = challenge.item.char;
+    const optionLabel = option?.label || SHARK_ACCESSORY_SLOT_LABELS[slot];
+
+    applyActionRef.current = () => onApplyAccessory(slot, accessoryId);
+    setPendingChallenge({
+      source: 'slot',
+      slot,
+      selectionId: accessoryId,
+      category: challenge.category,
+      item: challenge.item,
+      title: `${SHARK_ACCESSORY_SLOT_LABELS[slot]}：${optionLabel}`,
+      hint: `先写${getChallengeWord(challenge.category)} ${challenge.item.char}，再完成装扮`,
+    });
+    setIsChallengeStarted(false);
+  };
+
+  const beginDragOption = (
+    event: React.PointerEvent,
+    slot: SharkAccessorySlot,
+    accessoryId: SharkAccessoryId | 'none',
+    icon: string
+  ) => {
     event.preventDefault();
     if (event.currentTarget.setPointerCapture) {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
     const point = getPointerXY(event);
     dragStartRef.current = { x: point.x, y: point.y };
-    suppressAccessoryClickRef.current = false;
-    setDragging({ accessory, icon, x: point.x, y: point.y });
+    suppressClickRef.current = false;
+    setDragging({ slot, id: accessoryId, icon, x: point.x, y: point.y });
   };
 
-  const handleAccessoryClick = (accessory: SharkAccessory) => {
-    if (suppressAccessoryClickRef.current) {
-      suppressAccessoryClickRef.current = false;
+  const handleOptionClick = (slot: SharkAccessorySlot, accessoryId: SharkAccessoryId | 'none') => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
       return;
     }
-    openAccessoryChallenge(accessory);
+    openSlotChallenge(slot, accessoryId);
   };
 
   React.useEffect(() => {
@@ -191,7 +276,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
       const point = getPointerXY(event);
       const start = dragStartRef.current;
       if (start && Math.hypot(point.x - start.x, point.y - start.y) > 8) {
-        suppressAccessoryClickRef.current = true;
+        suppressClickRef.current = true;
       }
       setDragging((prev) => (prev ? { ...prev, x: point.x, y: point.y } : prev));
       const rect = dropZoneRef.current?.getBoundingClientRect();
@@ -208,14 +293,14 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         !!rect && point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 
       if (droppedOnShark) {
-        openAccessoryChallenge(dragging.accessory);
+        openSlotChallenge(dragging.slot, dragging.id);
       }
 
       setDragging(null);
       setIsDropActive(false);
       dragStartRef.current = null;
       window.setTimeout(() => {
-        suppressAccessoryClickRef.current = false;
+        suppressClickRef.current = false;
       }, 0);
     };
 
@@ -226,7 +311,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dragging, dressupMissionPool, accessoryMeta]);
+  }, [dragging, dressupMissionPool, optionLookup]);
 
   if (pendingChallenge && isChallengeStarted) {
     return (
@@ -241,7 +326,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           const minutesDelta = Math.max(1 / 6, (Date.now() - challengeStartRef.current) / 60000);
           onChallengeComplete(pendingChallenge.item, pendingChallenge.category, minutesDelta);
           applyActionRef.current?.();
-          setSuccessTip(pendingChallenge.source === 'color' ? '颜色变好啦' : '配件戴好啦');
+          setSuccessTip(pendingChallenge.source === 'color' ? '颜色变好啦' : '装扮完成啦');
           setPendingChallenge(null);
           setIsChallengeStarted(false);
           window.setTimeout(() => setSuccessTip(''), 1300);
@@ -280,8 +365,8 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-xl md:text-2xl font-black text-ocean-900 mb-1">给鲨鱼换新造型</p>
-              <p className="text-sm font-bold text-gray-500">颜色和配件都要先完成一个小书写挑战</p>
-              <p className="text-xs font-black text-ocean-700 mt-2">当前配件挑战池：{poolLabel}</p>
+              <p className="text-sm font-bold text-gray-500">每次换颜色或配件，都先来一个小书写挑战</p>
+              <p className="text-xs font-black text-ocean-700 mt-2">当前挑战池：{getPoolLabel(dressupMissionPool)}</p>
               <p className="text-xs font-black text-ocean-700 mt-1">创意泡泡：{styleTokens}</p>
             </div>
 
@@ -316,9 +401,9 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
             </div>
           </div>
 
-          <div className="mb-5">
+          <div className="mb-6">
             <p className="text-base font-black text-ocean-900 mb-2">换颜色</p>
-            <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+            <div className="grid grid-cols-4 md:grid-cols-12 gap-2">
               {SHARK_COLOR_OPTIONS.map((color) => (
                 <button
                   key={color}
@@ -331,26 +416,44 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                 />
               ))}
             </div>
-            <p className="text-xs font-bold text-gray-500 mt-2">颜色挑战字母会随机出现</p>
+            <p className="text-xs font-bold text-gray-500 mt-2">颜色挑战会从当前挑战池里随机或语义匹配出现</p>
           </div>
 
           <div>
-            <p className="text-base font-black text-ocean-900 mb-2">换配件</p>
-            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-              {SHARK_ACCESSORY_OPTIONS.map((item) => (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {SHARK_ACCESSORY_SLOT_ORDER.map((slot) => (
                 <button
-                  key={item.id}
-                  onPointerDown={(event) => beginDragAccessory(event, item.id, item.icon)}
-                  onClick={() => handleAccessoryClick(item.id)}
-                  className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
-                    sharkConfig.accessory === item.id ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
+                  key={slot}
+                  onClick={() => setActiveSlot(slot)}
+                  className={`px-4 py-2 rounded-xl border text-sm font-black ${
+                    activeSlot === slot
+                      ? 'bg-ocean-500 text-white border-ocean-500'
+                      : 'bg-white text-ocean-900 border-gray-200'
                   }`}
-                  style={{ touchAction: 'none' }}
                 >
-                  <p className="text-2xl">{item.icon}</p>
-                  <p className="text-[11px] font-black text-gray-600">{item.label}</p>
+                  {SHARK_ACCESSORY_SLOT_LABELS[slot]}
                 </button>
               ))}
+            </div>
+
+            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+              {optionsBySlot[activeSlot].map((option) => {
+                const isSelected = sharkConfig.accessories[activeSlot] === option.id;
+                return (
+                  <button
+                    key={`${activeSlot}:${option.id}`}
+                    onPointerDown={(event) => beginDragOption(event, activeSlot, option.id, option.icon)}
+                    onClick={() => handleOptionClick(activeSlot, option.id)}
+                    className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
+                      isSelected ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
+                    }`}
+                    style={{ touchAction: 'none' }}
+                  >
+                    <p className="text-2xl">{option.icon}</p>
+                    <p className="text-[11px] font-black text-gray-600">{option.label}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

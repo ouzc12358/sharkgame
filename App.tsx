@@ -41,7 +41,7 @@ import {
 } from './src/logic/tracing';
 import { setAudioPreferenceFlags, speak } from './src/logic/audio';
 import { loadChildState, saveChildState } from './src/logic/storage';
-import { getThemeUpgradeLevel, SHARK_THEME_PRESETS } from './src/modules/dressup/sharkStyle';
+import { createDefaultAccessories, getThemeUpgradeLevel, SHARK_THEME_PRESETS } from './src/modules/dressup/sharkStyle';
 
 type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'dressup' | 'skate';
 
@@ -183,21 +183,24 @@ export default function App() {
     setSharkConfig((prev) => ({
       ...prev,
       color: preset.color,
-      accessory: preset.accessory,
+      accessories: createDefaultAccessories(preset.accessories),
     }));
   };
 
   const applySkateLook = (look: 'base' | 'helmet' | 'pads' | 'board') => {
     applyTheme('skate');
     const accessoryMap = {
-      base: 'board',
-      helmet: 'helmet',
-      pads: 'pads',
-      board: 'board',
+      base: { slot: 'item', id: 'board' },
+      helmet: { slot: 'hat', id: 'helmet' },
+      pads: { slot: 'clothes', id: 'armor' },
+      board: { slot: 'item', id: 'board' },
     } as const;
     setSharkConfig((prev) => ({
       ...prev,
-      accessory: accessoryMap[look],
+      accessories: {
+        ...prev.accessories,
+        [accessoryMap[look].slot]: accessoryMap[look].id,
+      },
     }));
   };
 
@@ -408,10 +411,13 @@ export default function App() {
               color,
             }))
           }
-          onApplyAccessory={(accessory) =>
+          onApplyAccessory={(slot, accessoryId) =>
             setSharkConfig((prev) => ({
               ...prev,
-              accessory,
+              accessories: {
+                ...prev.accessories,
+                [slot]: accessoryId,
+              },
             }))
           }
           onChallengeAttempt={onRequestAttempt}

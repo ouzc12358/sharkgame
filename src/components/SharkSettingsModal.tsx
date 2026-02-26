@@ -2,8 +2,11 @@ import React from 'react';
 import { SharkConfig, SharkTheme } from '../../types';
 import FriendlyShark from './FriendlyShark';
 import {
+  createDefaultAccessories,
   getThemeUpgradeLevel,
-  SHARK_ACCESSORY_OPTIONS,
+  SHARK_ACCESSORY_OPTIONS_BY_SLOT,
+  SHARK_ACCESSORY_SLOT_LABELS,
+  SHARK_ACCESSORY_SLOT_ORDER,
   SHARK_COLOR_OPTIONS,
   SHARK_PALETTES,
   SHARK_THEME_ORDER,
@@ -31,6 +34,7 @@ const SharkSettingsModal: React.FC<SharkSettingsModalProps> = ({
 }) => {
   if (!isOpen) return null;
   const themeUpgradeLevel = getThemeUpgradeLevel(themePracticeCount);
+  const safeAccessories = createDefaultAccessories(config.accessories);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-2 md:p-4 overflow-y-auto overscroll-contain">
@@ -81,7 +85,7 @@ const SharkSettingsModal: React.FC<SharkSettingsModalProps> = ({
 
             <div>
               <h3 className="text-base md:text-lg font-bold text-gray-700 mb-2 md:mb-3">颜色 (Color)</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 md:gap-3 justify-items-center">
+              <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-2 md:gap-3 justify-items-center">
                 {SHARK_COLOR_OPTIONS.map((color) => (
                   <button
                     key={color}
@@ -97,20 +101,37 @@ const SharkSettingsModal: React.FC<SharkSettingsModalProps> = ({
             </div>
 
             <div>
-              <h3 className="text-base md:text-lg font-bold text-gray-700 mb-2 md:mb-3">装饰 (Accessory)</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 md:gap-3">
-                {SHARK_ACCESSORY_OPTIONS.map((item) => (
-                  <button
-                    key={item.id}
-                    title={item.label}
-                    onClick={() => onChange({ ...config, accessory: item.id })}
-                    className={`relative flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 transition-all min-h-[72px] md:min-h-[84px] ${
-                      config.accessory === item.id ? 'bg-ocean-100 border-ocean-500' : 'border-gray-200 hover:border-ocean-300'
-                    }`}
-                  >
-                    <span className="text-xl md:text-2xl mb-1">{item.icon}</span>
-                    <span className="text-[11px] md:text-xs font-bold text-gray-600 leading-tight">{item.label}</span>
-                  </button>
+              <h3 className="text-base md:text-lg font-bold text-gray-700 mb-2 md:mb-3">配件分类 (Accessory Slots)</h3>
+              <div className="space-y-4">
+                {SHARK_ACCESSORY_SLOT_ORDER.map((slot) => (
+                  <div key={slot} className="rounded-2xl border border-gray-200 p-3">
+                    <p className="text-sm md:text-base font-black text-ocean-900 mb-2">{SHARK_ACCESSORY_SLOT_LABELS[slot]}</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2 md:gap-3">
+                      {SHARK_ACCESSORY_OPTIONS_BY_SLOT[slot].map((item) => (
+                        <button
+                          key={`${slot}:${item.id}`}
+                          title={item.label}
+                          onClick={() =>
+                            onChange({
+                              ...config,
+                              accessories: {
+                                ...safeAccessories,
+                                [slot]: item.id,
+                              },
+                            })
+                          }
+                          className={`relative flex flex-col items-center justify-center p-2 md:p-3 rounded-xl border-2 transition-all min-h-[72px] md:min-h-[84px] ${
+                            safeAccessories[slot] === item.id
+                              ? 'bg-ocean-100 border-ocean-500'
+                              : 'border-gray-200 hover:border-ocean-300'
+                          }`}
+                        >
+                          <span className="text-xl md:text-2xl mb-1">{item.icon}</span>
+                          <span className="text-[11px] md:text-xs font-bold text-gray-600 leading-tight">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

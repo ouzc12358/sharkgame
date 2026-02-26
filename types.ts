@@ -45,10 +45,72 @@ export type DressupMissionPoolMode = LearningBlockType | 'mixed';
 export type SessionLengthTarget = 5 | 6 | 7 | 8;
 export type RhythmGateIntensity = 'light' | 'medium' | 'off';
 
-export type SharkColor = 'blue' | 'pink' | 'green' | 'purple' | 'orange' | 'teal' | 'yellow' | 'coral';
-export type SharkAccessory = 'none' | 'hat' | 'glasses' | 'bowtie' | 'crown' | 'headphones' | 'scarf' | 'helmet' | 'pads' | 'board' | 'redBag' | 'greenBag' | 'blueBag' | 'lightCoralBag';
+export type SharkColor =
+  | 'blue'
+  | 'pink'
+  | 'green'
+  | 'purple'
+  | 'orange'
+  | 'teal'
+  | 'yellow'
+  | 'coral'
+  | 'mint'
+  | 'sky'
+  | 'peach'
+  | 'violet';
+
+export type SharkAccessorySlot = 'hat' | 'clothes' | 'shoes' | 'item' | 'face' | 'neck';
+
+export type SharkAccessoryId =
+  | 'none'
+  | 'topHat'
+  | 'crown'
+  | 'helmet'
+  | 'beanie'
+  | 'rainHat'
+  | 'hoodie'
+  | 'tshirt'
+  | 'jacket'
+  | 'armor'
+  | 'raincoat'
+  | 'sneakers'
+  | 'flippers'
+  | 'boots'
+  | 'rollerSkates'
+  | 'board'
+  | 'book'
+  | 'starWand'
+  | 'backpackRed'
+  | 'backpackGreen'
+  | 'backpackBlue'
+  | 'backpackCoral'
+  | 'sunglasses'
+  | 'glasses'
+  | 'monocle'
+  | 'mask'
+  | 'bowtie'
+  | 'scarf'
+  | 'medal';
+
+export const SHARK_ACCESSORY_SLOTS: SharkAccessorySlot[] = [
+  'hat',
+  'clothes',
+  'shoes',
+  'item',
+  'face',
+  'neck',
+];
+
+export const DEFAULT_SHARK_ACCESSORIES: Record<SharkAccessorySlot, SharkAccessoryId | 'none'> = {
+  hat: 'none',
+  clothes: 'none',
+  shoes: 'none',
+  item: 'none',
+  face: 'glasses',
+  neck: 'none',
+};
 
 export interface SharkConfig {
   color: SharkColor;
-  accessory: SharkAccessory;
+  accessories: Record<SharkAccessorySlot, SharkAccessoryId | 'none'>;
 }

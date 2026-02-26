@@ -37,9 +37,10 @@ const DIFFICULTY_OPTIONS: Array<{ id: DifficultyMode; label: string }> = [
 ];
 
 const DRESSUP_POOL_OPTIONS: Array<{ id: DressupMissionPoolMode; label: string }> = [
+  { id: 'shapes', label: '线条形状' },
   { id: 'numbers', label: '数字' },
   { id: 'letters', label: '字母' },
-  { id: 'mixed', label: '字母+数字' },
+  { id: 'mixed', label: '混合' },
 ];
 
 const SESSION_OPTIONS: SessionLengthTarget[] = [5, 6, 7, 8];
@@ -156,7 +157,7 @@ const ParentZone: React.FC<ParentZoneProps> = ({
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-500 font-bold mt-2">仅用于换装冒险，挑战只会出现字母和数字。</p>
+          <p className="text-xs text-gray-500 font-bold mt-2">仅用于换装冒险，决定装扮挑战出现线条/数字/字母。</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
