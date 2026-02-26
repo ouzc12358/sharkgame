@@ -101,8 +101,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewBoxBounds = useMemo(() => parseViewBox(item.viewBox), [item.viewBox]);
   const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item.svgPath]);
-  const guides = useMemo(() => getStrokeGuides(item.svgPath, item.viewBox), [item.svgPath, item.viewBox]);
-  const expectedStrokeCount = Math.max(1, guides.length);
+  const computedGuides = useMemo(() => getStrokeGuides(item.svgPath, item.viewBox), [item.svgPath, item.viewBox]);
+  const guides = useMemo(
+    () => (item.strokeGuides && item.strokeGuides.length > 0 ? item.strokeGuides : computedGuides),
+    [item.strokeGuides, computedGuides]
+  );
+  const expectedStrokeCount = Math.max(1, item.strokeCountHint || guides.length);
   const hasValidPath = pathPoints.length > 0;
   const unitScale = Math.max(0.5, Math.min(2.5, Math.min(viewBoxBounds.width, viewBoxBounds.height) / 100));
   const traceStrokeWidth = Math.max(5, 12 * unitScale);

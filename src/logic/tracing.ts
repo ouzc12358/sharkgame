@@ -1,4 +1,4 @@
-import { Point } from '../../types';
+import { Point, StrokeGuide } from '../../types';
 import { MissionItem } from './missions';
 import { clampToViewBox, parseViewBox } from './viewBox';
 
@@ -29,7 +29,7 @@ export const getPathPoints = (svgPathString: string, numPoints = 100): Point[] =
   }
 };
 
-export const getStrokeGuides = (d: string, viewBox?: string) => {
+export const getStrokeGuides = (d: string, viewBox?: string): StrokeGuide[] => {
   if (!d) return [];
   const bounds = parseViewBox(viewBox);
   const segments = d.split(/(?=[Mm])/).filter((s) => s.trim().length > 0);
@@ -58,7 +58,7 @@ export const getStrokeGuides = (d: string, viewBox?: string) => {
           return null;
         }
       })
-      .filter((g): g is { id: number; x: number; y: number; angle: number } => Boolean(g));
+      .filter((g): g is StrokeGuide => Boolean(g));
 
     const overlapDistance = Math.max(2.5, Math.min(bounds.width, bounds.height) * 0.04);
     const spreadOffset = Math.max(4.5, Math.min(bounds.width, bounds.height) * 0.07);

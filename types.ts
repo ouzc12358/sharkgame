@@ -5,12 +5,26 @@ export interface Point {
   t?: number;
 }
 
+export interface StrokeGuide {
+  id: number;
+  x: number;
+  y: number;
+  angle?: number;
+}
+
 export interface LetterConfig {
   char: string;
   word: string;
   emoji: string;
   svgPath: string; // The path for the guide
   viewBox: string; // Viewbox for the path
+  strokeGuides?: StrokeGuide[];
+  strokeCountHint?: number;
+  phonics?: {
+    en?: string;
+    zh?: string;
+  };
+  stickerTags?: string[];
 }
 
 export enum AppView {
