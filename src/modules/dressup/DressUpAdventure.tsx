@@ -76,6 +76,15 @@ const COLOR_CHALLENGE_HINT: Partial<Record<SharkColor, { category: LearningCateg
   coral: { category: 'letters', char: 'C' },
 };
 
+const SLOT_BODY_POSITIONS: Record<SharkAccessorySlot, string> = {
+  hat: 'md:col-start-1 md:row-start-1',
+  item: 'md:col-start-3 md:row-start-1',
+  face: 'md:col-start-1 md:row-start-2',
+  neck: 'md:col-start-3 md:row-start-2',
+  clothes: 'md:col-start-1 md:row-start-3',
+  shoes: 'md:col-start-2 md:row-start-3',
+};
+
 const getPointerXY = (event: PointerEvent | React.PointerEvent) => ({
   x: event.clientX,
   y: event.clientY,
@@ -183,9 +192,16 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 }) => {
   const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
   const [isChallengeStarted, setIsChallengeStarted] = useState(false);
-  const [dragging, setDragging] = useState<{ slot: SharkAccessorySlot; id: SharkAccessoryId | 'none'; icon: string; x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState<{
+    slot: SharkAccessorySlot;
+    id: SharkAccessoryId | 'none';
+    icon: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [successTip, setSuccessTip] = useState('');
+
   const applyActionRef = useRef<null | (() => void)>(null);
   const challengeStartRef = useRef<number>(Date.now());
   const lastChallengeCharRef = useRef<string | null>(null);
@@ -227,6 +243,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
     const preferred = preferredChallenge
       ? { category: preferredChallenge.category, char: preferredChallenge.char }
       : undefined;
+
     const challenge = pickChallengeByPool(dressupMissionPool, preferred, lastChallengeCharRef.current || undefined);
     lastChallengeCharRef.current = challenge.item.char;
     const optionLabel = option?.label || SHARK_ACCESSORY_SLOT_LABELS[slot];
@@ -277,7 +294,9 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
       if (start && Math.hypot(point.x - start.x, point.y - start.y) > 8) {
         suppressClickRef.current = true;
       }
+
       setDragging((prev) => (prev ? { ...prev, x: point.x, y: point.y } : prev));
+
       const rect = dropZoneRef.current?.getBoundingClientRect();
       if (rect) {
         const inside = point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
@@ -346,7 +365,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
 
   return (
     <div className="h-full bg-ocean-500 overflow-y-auto">
-      <div className="max-w-5xl mx-auto p-4 md:p-6 pb-8">
+      <div className="max-w-6xl mx-auto p-4 md:p-6 pb-8">
         <div className="flex justify-between items-center mb-4 md:mb-6 sticky top-0 bg-ocean-500/90 backdrop-blur-sm z-20 py-2">
           <button onClick={onBack} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
             🔙
@@ -386,45 +405,50 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
             </div>
           </div>
 
-          <div
-            ref={dropZoneRef}
-            className={`rounded-3xl border-4 transition-colors mb-5 p-4 ${
-              isDropActive ? 'border-ocean-400 bg-ocean-50' : 'border-ocean-100 bg-white'
-            }`}
-          >
-            <p className="text-sm font-black text-ocean-800 mb-2">把配件拖到鲨鱼身上（或点一下配件）</p>
-            <div className="w-full h-44 md:h-52 flex items-center justify-center">
-              <div className="w-64 h-44 md:w-72 md:h-48">
-                <FriendlyShark className="w-full h-full" config={sharkConfig} theme={theme} upgradeLevel={themeUpgradeLevel} />
+          <div className="rounded-3xl border-4 border-ocean-100 bg-gradient-to-b from-white to-ocean-50/60 p-3 md:p-4 mb-5">
+            <p className="text-sm font-black text-ocean-800 mb-3">把配件拖到中间大鲨鱼身上（或点一下配件）</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-3 gap-3">
+              <div className="rounded-2xl border border-ocean-100 bg-white p-2 md:col-start-2 md:row-start-1">
+                <p className="text-xs font-black text-ocean-800 mb-2">颜色</p>
+                <div className="grid grid-cols-6 gap-2">
+                  {SHARK_COLOR_OPTIONS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => openColorChallenge(color)}
+                      title={COLOR_LABELS[color]}
+                      className={`w-8 h-8 md:w-9 md:h-9 rounded-full border-4 mx-auto ${
+                        sharkConfig.color === color ? 'border-gray-800 scale-105' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: SHARK_PALETTES[color].body }}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="mb-6">
-            <p className="text-base font-black text-ocean-900 mb-2">换颜色</p>
-            <div className="grid grid-cols-4 md:grid-cols-12 gap-2">
-              {SHARK_COLOR_OPTIONS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => openColorChallenge(color)}
-                  title={COLOR_LABELS[color]}
-                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border-4 ${
-                    sharkConfig.color === color ? 'border-gray-800 scale-105' : 'border-transparent'
-                  }`}
-                  style={{ backgroundColor: SHARK_PALETTES[color].body }}
-                />
-              ))}
-            </div>
-            <p className="text-xs font-bold text-gray-500 mt-2">颜色挑战会从当前挑战池里随机或语义匹配出现</p>
-          </div>
+              <div
+                ref={dropZoneRef}
+                className={`rounded-3xl border-4 p-3 md:p-4 flex items-center justify-center transition-colors md:col-start-2 md:row-start-2 ${
+                  isDropActive ? 'border-ocean-400 bg-ocean-50' : 'border-ocean-100 bg-white'
+                }`}
+              >
+                <div className="w-72 h-52 md:w-72 md:h-56">
+                  <FriendlyShark
+                    className="w-full h-full"
+                    config={sharkConfig}
+                    theme={theme}
+                    upgradeLevel={themeUpgradeLevel}
+                  />
+                </div>
+              </div>
 
-          <div>
-            <p className="text-base font-black text-ocean-900 mb-2">换配件（一级直接选择）</p>
-            <div className="space-y-3">
               {SHARK_ACCESSORY_SLOT_ORDER.map((slot) => (
-                <div key={slot} className="rounded-2xl border border-gray-200 p-3">
-                  <p className="text-sm font-black text-ocean-800 mb-2">{SHARK_ACCESSORY_SLOT_LABELS[slot]}</p>
-                  <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                <div
+                  key={slot}
+                  className={`rounded-2xl border border-ocean-100 bg-white p-2 ${SLOT_BODY_POSITIONS[slot]}`}
+                >
+                  <p className="text-xs font-black text-ocean-800 mb-2">{SHARK_ACCESSORY_SLOT_LABELS[slot]}</p>
+                  <div className="grid grid-cols-3 gap-2">
                     {optionsBySlot[slot].map((option) => {
                       const isSelected = sharkConfig.accessories[slot] === option.id;
                       return (
@@ -432,13 +456,13 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
                           key={`${slot}:${option.id}`}
                           onPointerDown={(event) => beginDragOption(event, slot, option.id, option.icon)}
                           onClick={() => handleOptionClick(slot, option.id)}
-                          className={`rounded-xl border p-2 min-h-[74px] text-center active:scale-95 touch-none select-none ${
+                          className={`rounded-xl border p-2 min-h-[68px] w-full text-center active:scale-95 touch-none select-none ${
                             isSelected ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 bg-white'
                           }`}
                           style={{ touchAction: 'none' }}
                         >
-                          <p className="text-2xl">{option.icon}</p>
-                          <p className="text-[11px] font-black text-gray-600">{option.label}</p>
+                          <p className="text-xl leading-none">{option.icon}</p>
+                          <p className="text-[10px] font-black text-gray-600 mt-1 leading-tight">{option.label}</p>
                         </button>
                       );
                     })}
@@ -447,14 +471,13 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
               ))}
             </div>
           </div>
+
+          <p className="text-xs font-bold text-gray-500 mt-1">颜色在顶部中央；其余分类按人体部位围绕鲨鱼排列</p>
         </div>
       </div>
 
       {dragging && (
-        <div
-          className="fixed z-[75] pointer-events-none text-4xl"
-          style={{ left: dragging.x - 16, top: dragging.y - 24 }}
-        >
+        <div className="fixed z-[75] pointer-events-none text-4xl" style={{ left: dragging.x - 16, top: dragging.y - 24 }}>
           {dragging.icon}
         </div>
       )}
