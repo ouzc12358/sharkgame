@@ -72,6 +72,11 @@ interface TracePracticeViewProps {
   skipDemo?: boolean;
 }
 
+const getViewportSize = () => ({
+  width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+  height: typeof window !== 'undefined' ? window.innerHeight : 768,
+});
+
 const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   item,
   category,
@@ -95,6 +100,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const [helperMessage, setHelperMessage] = useState('请沿着线写');
   const [showLowercase, setShowLowercase] = useState(false);
   const [showMagicModal, setShowMagicModal] = useState(false);
+  const [viewport, setViewport] = useState(getViewportSize);
   const supportsCaseToggle = /^[A-Z]$/.test(item.char);
   const isShapeChallenge = category === 'shapes';
 
@@ -144,11 +150,27 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
           coverageThreshold: 7,
           successCoverage: difficultyConfig.successCoverage,
           successFollow: difficultyConfig.successFollow,
-        };
+      };
+  const isLandscape = viewport.width > viewport.height;
+  const traceBoxSize = useMemo(() => {
+    const byHeight = viewport.height * (isLandscape ? 0.3 : 0.34);
+    const byWidth = viewport.width * 0.78;
+    return Math.max(150, Math.min(380, byHeight, byWidth));
+  }, [isLandscape, viewport.height, viewport.width]);
 
   const isDragging = useRef(false);
   const [nextGuideIndex, setNextGuideIndex] = useState(0);
   const [returnBubble, setReturnBubble] = useState<Point | null>(null);
+
+  useEffect(() => {
+    const updateViewport = () => setViewport(getViewportSize());
+    window.addEventListener('resize', updateViewport);
+    window.addEventListener('orientationchange', updateViewport);
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      window.removeEventListener('orientationchange', updateViewport);
+    };
+  }, []);
 
   useEffect(() => {
     setStrokes([]);
@@ -409,7 +431,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-ocean-500">
-      <div className="flex-none flex justify-between items-center p-4">
+      <div className={`flex-none flex justify-between items-center ${isLandscape ? 'px-3 py-2' : 'p-4'}`}>
         <button onClick={onBack} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
           🔙
         </button>
@@ -434,16 +456,24 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto w-full">
-        <div className="min-h-full flex flex-col items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] p-6 shadow-2xl flex flex-col items-center w-full max-w-2xl relative">
+        <div className={`min-h-full flex flex-col items-center justify-start ${isLandscape ? 'p-2 pb-3' : 'p-4'}`}>
+          <div
+            className={`bg-white rounded-[3rem] shadow-2xl flex flex-col items-center w-full max-w-2xl relative ${
+              isLandscape ? 'p-4' : 'p-6'
+            }`}
+          >
             <div
               className={`absolute inset-0 rounded-[3rem] border-8 pointer-events-none transition-colors duration-300 ${
                 guideFlash ? 'border-coral animate-pulse' : 'border-transparent'
               }`}
             ></div>
 
-            <div className="flex items-center gap-8 mb-4">
-              <span className="text-8xl md:text-9xl font-black text-ocean-900 select-none">
+            <div className={`flex items-center ${isLandscape ? 'gap-4 mb-3' : 'gap-8 mb-4'}`}>
+              <span
+                className={`font-black text-ocean-900 select-none ${
+                  isLandscape ? 'text-7xl md:text-8xl' : 'text-8xl md:text-9xl'
+                }`}
+              >
                 {supportsCaseToggle && showLowercase ? `${item.char} ${item.char.toLowerCase()}` : item.char}
               </span>
               <div className="flex flex-col items-center relative group">
@@ -472,9 +502,10 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
             <ProgressIcons levels={progressLevels} />
 
             <div
-              className={`relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] shrink-0 touch-none ${
+              className={`relative shrink-0 touch-none ${
                 guideFlash ? 'animate-[shake_0.5s_ease-in-out]' : ''
               }`}
+              style={{ width: `${traceBoxSize}px`, height: `${traceBoxSize}px` }}
             >
               <svg viewBox={item.viewBox} className="absolute inset-0 w-full h-full pointer-events-none">
                 <defs>
@@ -631,8 +662,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
               <canvas
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full cursor-crosshair opacity-0"
-                width={400}
-                height={400}
+                width={Math.round(traceBoxSize)}
+                height={Math.round(traceBoxSize)}
                 onMouseDown={handleStart}
                 onMouseMove={handleMove}
                 onMouseUp={handleEnd}
@@ -661,8 +692,13 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
         </div>
       </div>
 
-      <div className="flex-none p-4 flex justify-center pointer-events-none">
-        <FriendlyShark className="w-24 h-24" config={sharkConfig} theme={theme} upgradeLevel={themeUpgradeLevel} />
+      <div className={`flex-none flex justify-center pointer-events-none ${isLandscape ? 'p-2' : 'p-4'}`}>
+        <FriendlyShark
+          className={isLandscape ? 'w-16 h-16' : 'w-24 h-24'}
+          config={sharkConfig}
+          theme={theme}
+          upgradeLevel={themeUpgradeLevel}
+        />
       </div>
 
       <ImagePickerModal
