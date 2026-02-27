@@ -102,7 +102,7 @@ export const LETTERS: LetterConfig[] = [
   createLetter('F', 'Fish', '🐟', 'M 25 15 L 25 85 M 25 15 L 75 15 M 25 50 L 65 50', {
     stickerTags: ['F', 'fish', 'ocean'],
   }),
-  createLetter('G', 'Goat', '🐐', 'M 80 25 C 20 15 20 85 80 75 M 80 50 L 55 50'),
+  createLetter('G', 'Goat', '🐐', 'M 80 25 C 20 15 20 85 80 75 C 88 73 88 55 80 50 L 55 50'),
   createLetter('H', 'Hat', '🎩', 'M 25 15 L 25 85 M 75 15 L 75 85 M 25 50 L 75 50'),
   createLetter('I', 'Igloo', '🏠', 'M 30 15 L 70 15 M 50 15 L 50 85 M 30 85 L 70 85'),
   createLetter('J', 'Jam', '🍯', 'M 30 15 L 70 15 M 60 15 L 60 75 C 60 95 30 95 30 75'),
