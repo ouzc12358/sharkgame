@@ -89,9 +89,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                 ? '数字'
                 : dressupPoolMode === 'letters'
                 ? '字母'
-                : dressupPoolMode === 'shapes'
-                ? '线条形状'
-                : '混合'}
+                : '混合（字母+数字）'}
             </p>
           </button>
 

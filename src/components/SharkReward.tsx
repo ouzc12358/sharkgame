@@ -38,7 +38,7 @@ const SharkReward: React.FC<SharkRewardProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setAnimationType(ANIMATION_TYPES[Math.floor(Math.random() * ANIMATION_TYPES.length)]);
-    speak('太棒了！', 'zh-CN', 0.58);
+    speak('太棒了！', 'zh-CN', 0.58, { interrupt: false });
     const timer = window.setTimeout(onClose, 3200);
     return () => window.clearTimeout(timer);
   }, [isOpen, seed, onClose]);

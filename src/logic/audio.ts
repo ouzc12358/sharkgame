@@ -33,10 +33,21 @@ export const setAudioPreferenceFlags = (next: { ttsEnabled: boolean; soundsEnabl
   AUDIO_PREFS.soundsEnabled = next.soundsEnabled;
 };
 
-export const speak = (text: string, lang: 'en-US' | 'zh-CN' = 'zh-CN', rate = 0.52) => {
+type SpeakOptions = {
+  interrupt?: boolean;
+};
+
+export const speak = (
+  text: string,
+  lang: 'en-US' | 'zh-CN' = 'zh-CN',
+  rate = 0.52,
+  options?: SpeakOptions
+) => {
   if (!AUDIO_PREFS.ttsEnabled) return;
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+  if (options?.interrupt !== false) {
+    window.speechSynthesis.cancel();
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = rate;
   utterance.pitch = 1;

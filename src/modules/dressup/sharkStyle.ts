@@ -7,7 +7,7 @@ import {
 } from '../../../types';
 
 export type AccessoryChallengeHint = {
-  category: 'letters' | 'numbers' | 'shapes';
+  category: 'letters' | 'numbers';
   char: string;
 };
 
@@ -88,7 +88,7 @@ export const SHARK_ACCESSORY_OPTIONS_BY_SLOT: Record<SharkAccessorySlot, SharkAc
     noneOption('item'),
     { id: 'board', slot: 'item', label: '滑板', icon: '🛹', preferredChallenge: { category: 'letters', char: 'B' } },
     { id: 'book', slot: 'item', label: '绘本', icon: '📘', preferredChallenge: { category: 'letters', char: 'B' } },
-    { id: 'starWand', slot: 'item', label: '星星棒', icon: '🪄', preferredChallenge: { category: 'shapes', char: 'star' } },
+    { id: 'starWand', slot: 'item', label: '星星棒', icon: '🪄', preferredChallenge: { category: 'letters', char: 'S' } },
     { id: 'backpackRed', slot: 'item', label: '红袋', icon: '🎒', preferredChallenge: { category: 'numbers', char: '5' } },
     { id: 'backpackGreen', slot: 'item', label: '绿袋', icon: '🟢', preferredChallenge: { category: 'letters', char: 'G' } },
     { id: 'backpackBlue', slot: 'item', label: '蓝袋', icon: '🔵', preferredChallenge: { category: 'letters', char: 'B' } },

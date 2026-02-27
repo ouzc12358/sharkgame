@@ -42,7 +42,7 @@ const DEFAULT_STATE: ChildStateSnapshot = {
   themePracticeCounts: { space: 0, fire: 0, diver: 0, skate: 0 },
   ttsEnabled: true,
   soundsEnabled: true,
-  dressupMissionPool: 'shapes',
+  dressupMissionPool: 'mixed',
   sessionLengthTarget: 6,
   rhythmGateIntensity: 'medium',
   skateModuleEnabled: true,
@@ -106,8 +106,10 @@ const safeTheme = (value: unknown): SharkTheme =>
 const safeColor = (value: unknown): SharkColor =>
   typeof value === 'string' && VALID_COLORS.has(value as SharkColor) ? (value as SharkColor) : DEFAULT_STATE.sharkConfig.color;
 
-const safePoolMode = (value: unknown): DressupMissionPoolMode =>
-  value === 'numbers' || value === 'letters' || value === 'mixed' || value === 'shapes' ? value : 'mixed';
+const safePoolMode = (value: unknown): DressupMissionPoolMode => {
+  if (value === 'shapes') return 'mixed';
+  return value === 'numbers' || value === 'letters' || value === 'mixed' ? value : 'mixed';
+};
 
 const safeSessionTarget = (value: unknown): SessionLengthTarget =>
   value === 5 || value === 6 || value === 7 || value === 8 ? value : 6;

@@ -8,9 +8,10 @@ import {
   SharkConfig,
   SharkTheme,
 } from '../../../types';
-import { LETTER_ITEMS, NUMBER_ITEMS, SHAPE_ITEMS } from '../../../constants';
+import { LETTER_ITEMS, NUMBER_ITEMS } from '../../../constants';
 import { LearningCategory } from '../../logic/tracing';
 import { TraceAttempt, TraceMetricLevels } from '../../logic/metrics';
+import { speak } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import TracePracticeView from '../learn/TracePracticeView';
 import {
@@ -50,6 +51,7 @@ interface PendingChallenge {
   item: LetterConfig;
   title: string;
   hint: string;
+  color?: SharkColor;
 }
 
 const COLOR_LABELS: Record<SharkColor, string> = {
@@ -91,15 +93,16 @@ const getPointerXY = (event: PointerEvent | React.PointerEvent) => ({
 });
 
 const findItemInCategory = (category: LearningCategory, char: string): LetterConfig | null => {
-  const source = category === 'letters' ? LETTER_ITEMS : category === 'numbers' ? NUMBER_ITEMS : SHAPE_ITEMS;
+  const source = category === 'letters' ? LETTER_ITEMS : NUMBER_ITEMS;
   return source.find((item) => item.char === char) || null;
 };
 
 const poolAllowsCategory = (pool: DressupMissionPoolMode, category: LearningCategory) => {
+  if (category === 'shapes') return false;
   if (pool === 'mixed') return true;
   if (pool === 'letters') return category === 'letters';
   if (pool === 'numbers') return category === 'numbers';
-  return category === 'shapes';
+  return false;
 };
 
 const pickRandomFrom = (items: LetterConfig[], excludeChar?: string) => {
@@ -119,41 +122,37 @@ const pickChallengeByPool = (
   preferred?: { category: LearningCategory; char?: string },
   excludeChar?: string
 ): { item: LetterConfig; category: LearningCategory } => {
+  const normalizedPool: 'letters' | 'numbers' | 'mixed' = pool === 'shapes' ? 'mixed' : pool;
   const pickFromCategory = (category: LearningCategory, preferredChar?: string) => {
+    if (category === 'shapes') {
+      return null;
+    }
     if (preferredChar) {
       const matched = findItemInCategory(category, preferredChar);
       if (matched) return matched;
     }
-    return pickRandomFrom(
-      category === 'letters' ? LETTER_ITEMS : category === 'numbers' ? NUMBER_ITEMS : SHAPE_ITEMS,
-      excludeChar
-    );
+    return pickRandomFrom(category === 'letters' ? LETTER_ITEMS : NUMBER_ITEMS, excludeChar);
   };
 
-  if (preferred && poolAllowsCategory(pool, preferred.category)) {
+  if (preferred && poolAllowsCategory(normalizedPool, preferred.category)) {
     const preferredItem = pickFromCategory(preferred.category, preferred.char);
     if (preferredItem) {
       return { category: preferred.category, item: preferredItem };
     }
   }
 
-  if (pool === 'letters') {
+  if (normalizedPool === 'letters') {
     const item = pickFromCategory('letters');
     return { category: 'letters', item: item || LETTER_ITEMS[0] };
   }
-  if (pool === 'numbers') {
+  if (normalizedPool === 'numbers') {
     const item = pickFromCategory('numbers');
     return { category: 'numbers', item: item || NUMBER_ITEMS[0] };
-  }
-  if (pool === 'shapes') {
-    const item = pickFromCategory('shapes');
-    return { category: 'shapes', item: item || SHAPE_ITEMS[0] };
   }
 
   const buckets: Array<{ category: LearningCategory; items: LetterConfig[] }> = [
     { category: 'letters', items: LETTER_ITEMS },
     { category: 'numbers', items: NUMBER_ITEMS },
-    { category: 'shapes', items: SHAPE_ITEMS },
   ];
   const candidate = buckets[Math.floor(Math.random() * buckets.length)];
   const item = pickRandomFrom(candidate.items, excludeChar) || candidate.items[0];
@@ -161,16 +160,61 @@ const pickChallengeByPool = (
 };
 
 const getPoolLabel = (pool: DressupMissionPoolMode) => {
-  if (pool === 'shapes') return '线条形状';
+  if (pool === 'shapes') return '混合（字母+数字）';
   if (pool === 'numbers') return '数字';
   if (pool === 'letters') return '字母';
-  return '混合';
+  return '混合（字母+数字）';
 };
 
 const getChallengeWord = (category: LearningCategory) => {
   if (category === 'letters') return '字母';
   if (category === 'numbers') return '数字';
   return '线条';
+};
+
+const SLOT_SPEECH_VERBS: Record<SharkAccessorySlot, { equip: string; remove: string }> = {
+  hat: { equip: '戴上', remove: '卸下' },
+  face: { equip: '戴上', remove: '卸下' },
+  neck: { equip: '戴上', remove: '卸下' },
+  clothes: { equip: '穿上', remove: '脱下' },
+  shoes: { equip: '穿上', remove: '脱下' },
+  item: { equip: '拿起', remove: '放下' },
+};
+
+const getDressupCompletionMessage = (
+  challenge: PendingChallenge,
+  currentConfig: SharkConfig,
+  optionLookup: Record<string, SharkAccessoryOption>
+) => {
+  if (challenge.source === 'color' && challenge.color) {
+    const colorLabel = COLOR_LABELS[challenge.color];
+    if (currentConfig.color === challenge.color) {
+      return `鲨鱼保持了${colorLabel}造型，你真棒`;
+    }
+    return `鲨鱼变成${colorLabel}了，你真棒`;
+  }
+
+  if (challenge.source === 'slot' && challenge.slot) {
+    const slot = challenge.slot;
+    const verbs = SLOT_SPEECH_VERBS[slot];
+    const nextId = challenge.selectionId || 'none';
+
+    if (nextId === 'none') {
+      const currentId = currentConfig.accessories[slot];
+      if (currentId && currentId !== 'none') {
+        const currentOption = optionLookup[`${slot}:${currentId}`];
+        const label = currentOption?.label || SHARK_ACCESSORY_SLOT_LABELS[slot];
+        return `鲨鱼${verbs.remove}${label}了，你真棒`;
+      }
+      return '鲨鱼这次轻装上阵，你真棒';
+    }
+
+    const nextOption = optionLookup[`${slot}:${nextId}`];
+    const label = nextOption?.label || SHARK_ACCESSORY_SLOT_LABELS[slot];
+    return `鲨鱼${verbs.equip}${label}了，你真棒`;
+  }
+
+  return '鲨鱼新造型完成啦，你真棒';
 };
 
 const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
@@ -233,6 +277,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
       item: challenge.item,
       title: `换成${COLOR_LABELS[color]}`,
       hint: `先写 ${challenge.item.char}，再把鲨鱼变成${COLOR_LABELS[color]}`,
+      color,
     });
     setIsChallengeStarted(false);
   };
@@ -343,8 +388,10 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         onComplete={() => {
           const minutesDelta = Math.max(1 / 6, (Date.now() - challengeStartRef.current) / 60000);
           onChallengeComplete(pendingChallenge.item, pendingChallenge.category, minutesDelta);
+          const completionMessage = getDressupCompletionMessage(pendingChallenge, sharkConfig, optionLookup);
           applyActionRef.current?.();
-          setSuccessTip(pendingChallenge.source === 'color' ? '颜色变好啦' : '装扮完成啦');
+          setSuccessTip(completionMessage);
+          speak(completionMessage, 'zh-CN', 0.9);
           setPendingChallenge(null);
           setIsChallengeStarted(false);
           window.setTimeout(() => setSuccessTip(''), 1300);
