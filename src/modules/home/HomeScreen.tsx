@@ -7,6 +7,7 @@ interface HomeScreenProps {
   onOpenShapes: () => void;
   onOpenNumbers: () => void;
   onOpenLetters: () => void;
+  onOpenFeed: () => void;
   onOpenDressup: () => void;
   onOpenSkate: () => void;
   onOpenSettings: () => void;
@@ -25,6 +26,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenShapes,
   onOpenNumbers,
   onOpenLetters,
+  onOpenFeed,
   onOpenDressup,
   onOpenSkate,
   onOpenSettings,
@@ -91,6 +93,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                 ? '字母'
                 : '混合（字母+数字）'}
             </p>
+          </button>
+
+          <button onClick={onOpenFeed} className={TILE_BASE}>
+            <div className="text-5xl mb-2">🍤</div>
+            <p className="text-3xl font-black text-ocean-900">喂食大冒险</p>
+            <p className="text-base font-bold text-gray-500 mt-1">Feeding Adventure</p>
           </button>
 
           <button onClick={onOpenSkate} className={TILE_BASE}>
