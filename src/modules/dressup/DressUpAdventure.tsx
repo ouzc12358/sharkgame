@@ -39,7 +39,8 @@ interface DressUpAdventureProps {
   onChallengeComplete: (item: LetterConfig, category: LearningCategory, minutesDelta: number) => void;
   getProgressLevels: (item: LetterConfig, category: LearningCategory) => TraceMetricLevels;
   customImages: Record<string, string>;
-  onUpdateImage: (char: string, image: string) => void;
+  customImageVoices: Record<string, string>;
+  onUpdateImage: (char: string, image: string, voiceLabel?: string) => void;
   styleTokens: number;
 }
 
@@ -231,6 +232,7 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
   onChallengeComplete,
   getProgressLevels,
   customImages,
+  customImageVoices,
   onUpdateImage,
   styleTokens,
 }) => {
@@ -398,7 +400,8 @@ const DressUpAdventure: React.FC<DressUpAdventureProps> = ({
         }}
         sharkConfig={sharkConfig}
         customImage={customImages[pendingChallenge.item.char] || null}
-        onUpdateImage={(img) => onUpdateImage(pendingChallenge.item.char, img)}
+        customImageVoice={customImageVoices[pendingChallenge.item.char] || null}
+        onUpdateImage={(img, voiceLabel) => onUpdateImage(pendingChallenge.item.char, img, voiceLabel)}
         progressLevels={getProgressLevels(pendingChallenge.item, pendingChallenge.category)}
         onAttemptAnalyzed={(attempt) => onChallengeAttempt(pendingChallenge.item, pendingChallenge.category, attempt)}
         difficultyMode="guide"

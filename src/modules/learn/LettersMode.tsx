@@ -11,6 +11,7 @@ const CATEGORY: LearningCategory = 'letters';
 const LettersMode: React.FC<LearningModeProps> = ({
   progress,
   customImages,
+  customImageVoices,
   difficultyMode,
   sharkConfig,
   theme,
@@ -44,7 +45,8 @@ const LettersMode: React.FC<LearningModeProps> = ({
         }}
         sharkConfig={sharkConfig}
         customImage={customImages[currentItem.char] || null}
-        onUpdateImage={(img) => onUpdateImage(currentItem.char, img)}
+        customImageVoice={customImageVoices[currentItem.char] || null}
+        onUpdateImage={(img, voiceLabel) => onUpdateImage(currentItem.char, img, voiceLabel)}
         progressLevels={getProgressLevels(currentItem, CATEGORY)}
         onAttemptAnalyzed={(attempt) => onRequestAttempt(currentItem, CATEGORY, attempt)}
         difficultyMode={difficultyMode}

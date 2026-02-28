@@ -32,7 +32,8 @@ interface SkateAdventureProps {
   theme: SharkTheme;
   themeUpgradeLevel: number;
   customImages: Record<string, string>;
-  onUpdateImage: (char: string, image: string) => void;
+  customImageVoices: Record<string, string>;
+  onUpdateImage: (char: string, image: string, voiceLabel?: string) => void;
   streak: number;
   diaryStickers: string[];
   sessionLengthTarget: number;
@@ -99,6 +100,7 @@ const SkateAdventure: React.FC<SkateAdventureProps> = ({
   theme,
   themeUpgradeLevel,
   customImages,
+  customImageVoices,
   onUpdateImage,
   streak,
   diaryStickers,
@@ -190,7 +192,8 @@ const SkateAdventure: React.FC<SkateAdventureProps> = ({
           }}
           sharkConfig={sharkConfig}
           customImage={customImages[activeItem.char] || null}
-          onUpdateImage={(img) => onUpdateImage(activeItem.char, img)}
+          customImageVoice={customImageVoices[activeItem.char] || null}
+          onUpdateImage={(img, voiceLabel) => onUpdateImage(activeItem.char, img, voiceLabel)}
           progressLevels={getProgressLevels(activeItem, category)}
           onAttemptAnalyzed={(attempt) => onAttemptChallenge(activeItem, category, attempt)}
           difficultyMode="guide"

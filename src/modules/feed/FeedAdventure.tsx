@@ -26,7 +26,8 @@ interface FeedAdventureProps {
   onChallengeComplete: (item: LetterConfig, category: LearningCategory, minutesDelta: number) => void;
   getProgressLevels: (item: LetterConfig, category: LearningCategory) => TraceMetricLevels;
   customImages: Record<string, string>;
-  onUpdateImage: (char: string, image: string) => void;
+  customImageVoices: Record<string, string>;
+  onUpdateImage: (char: string, image: string, voiceLabel?: string) => void;
 }
 
 interface WriteSession {
@@ -61,6 +62,7 @@ const FeedAdventure: React.FC<FeedAdventureProps> = ({
   onChallengeComplete,
   getProgressLevels,
   customImages,
+  customImageVoices,
   onUpdateImage,
 }) => {
   const [mode, setMode] = useState<FeedMode>('active');
@@ -241,7 +243,8 @@ const FeedAdventure: React.FC<FeedAdventureProps> = ({
         onComplete={handleWriteComplete}
         sharkConfig={sharkConfig}
         customImage={customImages[writeSession.item.char] || null}
-        onUpdateImage={(img) => onUpdateImage(writeSession.item.char, img)}
+        customImageVoice={customImageVoices[writeSession.item.char] || null}
+        onUpdateImage={(img, voiceLabel) => onUpdateImage(writeSession.item.char, img, voiceLabel)}
         progressLevels={getProgressLevels(writeSession.item, writeSession.category)}
         onAttemptAnalyzed={(attempt) => onChallengeAttempt(writeSession.item, writeSession.category, attempt)}
         difficultyMode={difficultyMode === 'guide' ? 'practice' : difficultyMode}

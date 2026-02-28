@@ -17,6 +17,7 @@ const CHILD_STATE_STORAGE_KEY = 'sharkgame.childState.v1';
 export interface ChildStateSnapshot {
   completedLetters: LetterProgress;
   customImages: Record<string, string>;
+  customImageVoices: Record<string, string>;
   sharkConfig: SharkConfig;
   difficultyMode: DifficultyMode;
   currentTheme: SharkTheme;
@@ -33,6 +34,7 @@ export interface ChildStateSnapshot {
 const DEFAULT_STATE: ChildStateSnapshot = {
   completedLetters: {},
   customImages: {},
+  customImageVoices: {},
   sharkConfig: {
     color: 'teal',
     accessories: { ...DEFAULT_SHARK_ACCESSORIES },
@@ -192,6 +194,7 @@ export const loadChildState = (): ChildStateSnapshot => {
     return {
       completedLetters: parsed.completedLetters || {},
       customImages: parsed.customImages || {},
+      customImageVoices: parsed.customImageVoices || {},
       sharkConfig: safeSharkConfig(parsed.sharkConfig),
       difficultyMode: safeMode(parsed.difficultyMode),
       currentTheme: safeTheme(parsed.currentTheme),

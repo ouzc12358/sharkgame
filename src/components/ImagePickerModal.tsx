@@ -8,7 +8,7 @@ interface ImagePickerModalProps {
   onClose: () => void;
   item: LetterConfig;
   currentImage: string | null;
-  onSave: (img: string) => void;
+  onSave: (img: string, voiceLabel?: string) => void;
 }
 
 const LETTER_ASSOCIATIONS: Record<string, string[]> = {
@@ -476,6 +476,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   onSave,
 }) => {
   const [selected, setSelected] = useState<string>(currentImage || STICKERS[0].src);
+  const [selectedSticker, setSelectedSticker] = useState<StickerItem | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   const currentPack = useMemo(() => buildCurrentPack(item), [item]);
@@ -493,7 +494,13 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setShowAll(false);
-    setSelected(currentImage || currentPack[0]?.src || allStickers[0]?.src || STICKERS[0].src);
+    const defaultSticker =
+      (currentImage ? allStickers.find((option) => option.src === currentImage) : null) ||
+      currentPack[0] ||
+      allStickers[0] ||
+      null;
+    setSelected(defaultSticker?.src || currentImage || STICKERS[0].src);
+    setSelectedSticker(defaultSticker);
 
     if (/^[A-Z]$/.test(item.char)) {
       speakLetterThenWord(item.char, item.word);
@@ -512,6 +519,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
   const handleSelectSticker = (option: StickerItem) => {
     setSelected(option.src);
+    setSelectedSticker(option);
     if (/^[A-Z]$/.test(item.char) && option.labelEn) {
       speakLetterThenWord(item.char, option.labelEn);
       return;
@@ -597,7 +605,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
         <button
           onClick={() => {
-            onSave(selected);
+            onSave(selected, selectedSticker?.labelEn || selectedSticker?.labelZh || item.word);
             onClose();
           }}
           className="w-full bg-ocean-500 text-white py-3 rounded-xl font-black hover:bg-ocean-600 shadow-md active:scale-95"

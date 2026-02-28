@@ -86,6 +86,7 @@ export default function App() {
 
   const [completedLetters, setCompletedLetters] = useState(initialChildState.completedLetters);
   const [customImages, setCustomImages] = useState<Record<string, string>>(initialChildState.customImages);
+  const [customImageVoices, setCustomImageVoices] = useState<Record<string, string>>(initialChildState.customImageVoices);
   const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>(initialChildState.difficultyMode);
   const [currentTheme, setCurrentTheme] = useState<SharkTheme>(initialChildState.currentTheme);
   const [themePracticeCounts, setThemePracticeCounts] = useState(initialChildState.themePracticeCounts);
@@ -285,11 +286,17 @@ export default function App() {
     return getDisplayLevels(metricsStore, itemKey);
   };
 
-  const handleUpdateImage = (char: string, image: string) => {
+  const handleUpdateImage = (char: string, image: string, voiceLabel?: string) => {
     setCustomImages((prev) => ({
       ...prev,
       [char]: image,
     }));
+    if (voiceLabel && voiceLabel.trim()) {
+      setCustomImageVoices((prev) => ({
+        ...prev,
+        [char]: voiceLabel.trim(),
+      }));
+    }
   };
 
   useEffect(() => {
@@ -322,6 +329,7 @@ export default function App() {
     saveChildState({
       completedLetters,
       customImages,
+      customImageVoices,
       sharkConfig,
       difficultyMode,
       currentTheme,
@@ -337,6 +345,7 @@ export default function App() {
   }, [
     completedLetters,
     customImages,
+    customImageVoices,
     sharkConfig,
     difficultyMode,
     currentTheme,
@@ -358,6 +367,7 @@ export default function App() {
         <ShapesMode
           progress={completedLetters}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           difficultyMode={difficultyMode}
           sharkConfig={sharkConfig}
           theme={currentTheme}
@@ -377,6 +387,7 @@ export default function App() {
         <NumbersMode
           progress={completedLetters}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           difficultyMode={difficultyMode}
           sharkConfig={sharkConfig}
           theme={currentTheme}
@@ -396,6 +407,7 @@ export default function App() {
         <LettersMode
           progress={completedLetters}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           difficultyMode={difficultyMode}
           sharkConfig={sharkConfig}
           theme={currentTheme}
@@ -439,6 +451,7 @@ export default function App() {
           onChallengeComplete={onCompleteDressupChallenge}
           getProgressLevels={getProgressLevels}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           onUpdateImage={handleUpdateImage}
           styleTokens={styleTokens}
         />
@@ -458,6 +471,7 @@ export default function App() {
           onChallengeComplete={onCompleteFeedChallenge}
           getProgressLevels={getProgressLevels}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           onUpdateImage={handleUpdateImage}
         />
       );
@@ -479,6 +493,7 @@ export default function App() {
           theme={currentTheme}
           themeUpgradeLevel={currentThemeUpgradeLevel}
           customImages={customImages}
+          customImageVoices={customImageVoices}
           onUpdateImage={handleUpdateImage}
           streak={missionStore.streak}
           diaryStickers={missionStore.history.map((entry) => entry.sticker).slice(0, 6).reverse()}

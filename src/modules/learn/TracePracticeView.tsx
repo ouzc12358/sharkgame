@@ -62,7 +62,8 @@ interface TracePracticeViewProps {
   onComplete: () => void;
   sharkConfig: SharkConfig;
   customImage: string | null;
-  onUpdateImage: (img: string) => void;
+  customImageVoice?: string | null;
+  onUpdateImage: (img: string, voiceLabel?: string) => void;
   progressLevels: TraceMetricLevels;
   onAttemptAnalyzed: (attempt: TraceAttempt) => void;
   difficultyMode: DifficultyMode;
@@ -84,6 +85,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   onComplete,
   sharkConfig,
   customImage,
+  customImageVoice,
   onUpdateImage,
   progressLevels,
   onAttemptAnalyzed,
@@ -162,6 +164,22 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const [nextGuideIndex, setNextGuideIndex] = useState(0);
   const [returnBubble, setReturnBubble] = useState<Point | null>(null);
 
+  const spokenCue = (customImageVoice || item.word || '').trim();
+  const cueIsEnglish = /^[A-Za-z][A-Za-z\s'-]*$/.test(spokenCue);
+
+  const speakLetterWithCue = (delay = 0) => {
+    if (!spokenCue) {
+      speakLetterThenWord(item.char, item.word);
+      return;
+    }
+    if (cueIsEnglish) {
+      speakLetterThenWord(item.char, spokenCue);
+      return;
+    }
+    speak(item.char.toUpperCase(), 'en-US', 0.56);
+    window.setTimeout(() => speak(spokenCue, 'zh-CN', 0.54), delay);
+  };
+
   useEffect(() => {
     const updateViewport = () => setViewport(getViewportSize());
     window.addEventListener('resize', updateViewport);
@@ -182,12 +200,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     
     let wordTimer: number | null = null;
     if (supportsCaseToggle) {
-      speakLetterThenWord(item.char, item.word);
+      speakLetterWithCue(skipDemo ? 320 : 980);
     } else {
       speakItemPrimary(item);
       const wordDelay = skipDemo ? 320 : 1300;
       wordTimer = window.setTimeout(() => {
-        speak(item.word, 'zh-CN');
+        speak(spokenCue || item.word, cueIsEnglish ? 'en-US' : 'zh-CN', 0.54);
       }, wordDelay);
     }
 
@@ -200,7 +218,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       if (timer !== null) window.clearTimeout(timer);
       if (wordTimer !== null) window.clearTimeout(wordTimer);
     };
-  }, [item, isShapeChallenge, supportsCaseToggle, skipDemo]);
+  }, [item, isShapeChallenge, supportsCaseToggle, skipDemo, spokenCue, cueIsEnglish]);
 
   const handleReplay = () => {
     setStrokes([]);
@@ -210,9 +228,12 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setHelperMessage(isShapeChallenge ? '从第1笔开始画线' : '再试一次，从第1笔开始');
     setIsDemonstrating(!skipDemo);
     if (supportsCaseToggle) {
-      speakLetterThenWord(item.char, item.word);
+      speakLetterWithCue(skipDemo ? 320 : 980);
     } else {
       speakItemPrimary(item);
+      window.setTimeout(() => {
+        speak(spokenCue || item.word, cueIsEnglish ? 'en-US' : 'zh-CN', 0.54);
+      }, skipDemo ? 260 : 980);
     }
     if (!skipDemo) {
       window.setTimeout(() => {
@@ -482,10 +503,10 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                     <img
                       src={customImage}
                       alt={item.word}
-                      className="w-24 h-24 object-contain animate-bounce-gentle rounded-lg"
+                      className={`${isLandscape ? 'w-24 h-24' : 'w-28 h-28 md:w-32 md:h-32'} object-contain animate-bounce-gentle rounded-lg`}
                     />
                   ) : (
-                    <span className="text-6xl select-none animate-bounce-gentle block">{item.emoji}</span>
+                    <span className={`${isLandscape ? 'text-6xl' : 'text-7xl md:text-8xl'} select-none animate-bounce-gentle block`}>{item.emoji}</span>
                   )}
                   <button
                     onClick={() => setShowMagicModal(true)}
@@ -495,7 +516,6 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                     ✨
                   </button>
                 </div>
-                <span className="text-2xl text-gray-500 font-bold mt-2">{item.word}</span>
               </div>
             </div>
 
@@ -706,7 +726,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
         onClose={() => setShowMagicModal(false)}
         item={item}
         currentImage={customImage}
-        onSave={(img) => onUpdateImage(img)}
+        onSave={(img, voiceLabel) => onUpdateImage(img, voiceLabel)}
       />
     </div>
   );
