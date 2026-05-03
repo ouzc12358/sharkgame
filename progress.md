@@ -1,0 +1,350 @@
+Original prompt: 这个是帮助3岁小朋友学习书写的的基于网页版的app， 然后，目前只有大写字母， 我想增加0～9的数字书写学习， 用同样的激励方式， 同样的书写方式来完成，和目前的大写字母的模式一样， 完成后本地运行检查下， 没有问题的话再推送github
+
+## 2026-02-24
+- 确认项目是 React + Vite 的书写学习应用，当前仅有 `A-Z` 大写字母数据（`constants.ts`）。
+- 已读取核心实现：`HomeView` 卡片列表、`LetterView` 描线判定/激励动画、完成进度与奖励逻辑。
+- 计划：在 `constants.ts` 增加 `0-9` 数据，复用现有 `LetterView` 与奖励机制；必要时调整首页标题文案；本地构建与自动化检查后提交并推送。
+- 已在 `constants.ts` 新增 `0-9` 共 10 个数字条目（与字母一致：`char/word/emoji/svgPath/viewBox`）。
+- 已在 `App.tsx` 调整：首页标题改为“字母和数字”；欢迎标题改为 “Sharky Letters & Numbers”；数字项不再显示无意义的 `Aa` 大小写切换按钮。
+- 发现并修复阻塞项：`@google/genai@0.0.12` 在 npm 不存在，已改为 `^0.12.0` 以恢复依赖安装。
+- 本地验证：
+  - `npm install` 成功（并生成 lockfile）。
+  - `npm run build` 通过。
+  - 使用 Playwright 回归：首页已显示 `0-9`；进入数字 `1` 的书写页后按路径描线可触发同样奖励动画（`result.json` 中 `rewardVisible: true`，无 console/page errors）。
+- 验证产物目录：
+  - `output/web-game/home-check/`（技能脚本基础检查）
+  - `output/web-game/number-check/`（数字 0 试描线）
+  - `output/web-game/number-check-1/`（数字 1 成功奖励验证）
+- 待办：提交代码并推送到 GitHub。
+
+## 2026-02-24（第二轮需求）
+- 新需求：拆分字母/数字入口页，修正字母笔顺序号问题，数字 `1` 改为最简单手写体，增加鲨鱼颜色和装饰。
+- 已完成代码改动：
+  - 视图层新增分类流转：`HOME -> LETTER_LIST / NUMBER_LIST -> LETTER`。
+  - 将原单列表页拆分为：
+    - 分类页（字母学习 / 数字学习）
+    - 字母专属列表页
+    - 数字专属列表页
+  - 重新整理 `A-Z` 的 `svgPath` 笔画顺序（按标准分笔 `M` 段），并将数字 `1` 调整为单笔手写体路径。
+  - 扩展鲨鱼外观：
+    - 颜色由 4 种扩展到 7 种（新增 orange / teal / yellow）
+    - 装饰由 4 种扩展到 7 种（新增 crown / headphones / scarf）
+  - 修复笔顺气泡重叠问题（如 `K` 的 2/3 号起点重叠）：在 `getStrokeGuides` 中对重叠气泡做自动错位。
+- 本地验证：
+  - `npm run build` 通过。
+  - Playwright 回归通过（`split-and-stroke-check-v2/result.json`）：
+    - `lettersSeparated: true`
+    - `numbersSeparated: true`
+    - `digitOneSingleStroke: true`
+    - `rewardVisibleAfterDigitOneTrace: true`
+    - `colorOptionsCount: 7`
+    - `accessoryOptionsCount: 7`
+    - `errors: []`
+- 额外笔顺可视化检查：`K/E/Z` 序号显示正常，其中 `K` 明确显示 `1/2/3`。
+
+## 2026-02-24（第三轮需求）
+- 新需求：
+  - 增加珊瑚色配色，但必须写完全部字母或全部数字后解锁。
+  - 数字提示音增加中文提示。
+- 已完成代码改动：
+  - 颜色新增 `coral`（类型、调色板、颜色选项）。
+  - 设置面板新增珊瑚色解锁机制：
+    - 未解锁时珊瑚色按钮禁用并显示锁标。
+    - 显示解锁提示文案：完成全部字母或全部数字后解锁。
+    - 解锁后可正常选择珊瑚色。
+  - 增加数字中文语音：
+    - 新增数字中文映射 `0-9 -> 零-九`。
+    - 数字卡片音频按钮改为播报 `数字X`（`zh-CN`）。
+    - 进入数字书写页与重播时，首段语音改为中文数字提示。
+- 本地验证：
+  - `npm run build` 通过。
+  - Playwright 端到端自动化通过（`output/web-game/coral-unlock-and-audio-check/result.json`）：
+    - `coralLockedInitially: true`
+    - `chineseNumberPromptTriggered: true`
+    - `allNumbersCompleted: true`
+    - `coralUnlockedAfterNumbers: true`
+    - `coralSelectableAfterUnlock: true`
+    - `errors: []`
+
+## 2026-02-24（第四轮需求）
+- 新需求：装饰中新增绿色袋子，并设置与珊瑚色相同的解锁条件（完成全部字母或全部数字）。
+- 已完成代码改动：
+  - `SharkAccessory` 新增 `bag` 类型。
+  - 装饰列表新增“绿袋”按钮（`🎒`），并在鲨鱼 SVG 中新增绿色袋子图形。
+  - 绿袋装饰加入锁定逻辑：
+    - 未解锁时按钮禁用 + 锁图标 + 提示文案。
+    - 解锁条件复用现有进度条件（全部字母或全部数字）。
+  - 增加防护：若未解锁状态下配置中出现锁定色/锁定装饰，自动回退到 `blue` + `none`。
+- 本地验证：
+  - `npm run build` 通过。
+  - 开发服务保持运行，已触发 HMR 更新可直接预览。
+
+## 2026-02-24（第五轮需求）
+- 反馈：袋子视觉容易被理解为红色，需增加明确绿色袋子。
+- 已完成代码改动：
+  - 装饰从单一 `bag` 拆分为两个独立装饰：`redBag`（红袋）和 `greenBag`（绿袋）。
+  - 在设置面板新增两个选项：
+    - 红袋（`🎒`）
+    - 绿袋（`🟢`）
+  - 鲨鱼 SVG 中分别实现红袋/绿袋两套配色绘制，确保视觉区分明显。
+  - 两个袋子都沿用相同解锁规则：完成全部字母或全部数字后可用（未解锁时禁用+锁标+提示）。
+- 本地验证：
+  - `npm run build` 通过。
+
+## 2026-02-24（重构任务 A-G）
+- 接管状态：`Remove Gemini module` 已完成并在 `HEAD`。
+- 已补齐并落地 B（每日任务）核心能力：
+  - 新增 `src/logic/missions.ts`：按日期生成每日故事 + 3 个练习项（当前字母/数字池）。
+  - 新增 `src/logic/missionStore.ts`：本地持久化任务日状态、streak、history。
+  - 新增 `src/components/MissionFlow.tsx` 与 `src/components/MissionRitual.tsx`。
+  - `App.tsx` 首页改为每日任务流，支持：
+    - 今日故事朗读
+    - 3 个任务项点击进入书写
+    - 完成后触发“击掌仪式”
+    - 写字母/数字会回写 mission practiced 项与分钟统计
+- 构建验证：`npm install` + `npm run build` 通过。
+- 已完成 C（进步图标与内部指标）：
+  - 新增 `src/logic/metrics.ts`：
+    - 计算 `follow / smoothness / continuity` 三项指标。
+    - 本地存储每个练习项最近 10 次尝试。
+    - 生成无分数的 1-5 级内部等级并用于 UI 显示。
+    - 选择单条正向鼓励语音（避免“错误”措辞）。
+  - `types.ts` 为轨迹点增加可选时间戳 `t`，支持 continuity 计算。
+  - `App.tsx` 书写页新增 3 组图标等级（贴近/顺滑/连贯），并用引导提示音替代错误音。
+- 构建验证：`npm install` + `npm run build` 通过。
+- 已完成 D（学前线条 Shapes 模式）：
+  - `constants.ts` 新增 7 个线条练习项：横线/竖线/斜线/圆圈/弧线/锯齿线/交叉线。
+  - `types.ts` 新增 `AppView.SHAPE_LIST`。
+  - `src/logic/missions.ts` 每日任务池支持 shape 项（按日期随机混入）。
+  - `src/components/MissionFlow.tsx` 新增“自由练线条”入口，任务卡片显示项目类型（字母/数字/线条）。
+  - `App.tsx` 接入线条列表页、线条任务启动、线条进度/指标键值、线条微挑战提示（10-20 秒）与本地 child state 持久化。
+- 构建验证：`npm install` + `npm run build` 通过。
+- 已完成 E（难度模式 + 磁吸引导）：
+  - `types.ts` 新增 `DifficultyMode`。
+  - `App.tsx` 新增 3 档难度配置：Guide / Practice / Challenge（默认 Guide，本地持久化）。
+  - 书写轨迹加入磁吸行为：近路径自动吸附，远离路径显示“回线气泡”而非错误惩罚。
+  - Guide 模式加入“下一段高亮”提示；Challenge 模式改为更自由书写 + 温和提示。
+  - 设置面板中可切换难度（后续 G 将迁移到 Parent Zone）。
+- 构建验证：`npm install` + `npm run build` 通过。
+- 已完成 F（装扮系统重构为“表达创作”）：
+  - 去掉“基础颜色/装饰锁定”逻辑，主题可随时选。
+  - 新增 3 个主题：太空鲨 / 火焰鲨 / 潜水鲨（`SharkTheme`）。
+  - 新增主题进阶：按练习次数自动升级（渐变高光、泡泡尾迹、闪光徽章）。
+  - 每次完成书写（以及每日任务仪式后）弹出主题选择：`今天当哪种鲨鱼？`，选择后立刻生效。
+  - `FriendlyShark` 支持主题+升级视觉效果；并持久化主题与主题练习计数到本地。
+- 构建验证：`npm install` + `npm run build` 通过。
+- 已完成 G（Parent Zone）：
+  - 新增 `src/components/ParentZone.tsx`。
+  - 入口改为隐藏长按：右上角微提示点，按住 5 秒才打开，避免孩子误入。
+  - 家长面板功能：
+    - TTS 开关、音效开关
+    - 难度模式切换（Guide/Practice/Challenge）
+    - 今日练习分钟数、今日练习项
+    - 指标薄弱项建议（基于 follow/smoothness/continuity）
+    - 连续天数与简易间隔复习提醒（1/3/7 天）
+  - 语音/音效设置与难度均本地持久化。
+- 构建验证：`npm install` + `npm run build` 通过。
+
+## 2026-02-24（重构任务：Game Blocks）
+- 使用 `develop-web-game` 迭代流程，先拆分结构后构建验证。
+- 新增模块化文件：
+  - `src/modules/home/HomeScreen.tsx`
+  - `src/modules/learn/*`（Shapes/Numbers/Letters + 通用模式壳 + TracePractice）
+  - `src/modules/dressup/sharkStyle.ts`
+  - `src/components/FriendlyShark.tsx`、`SharkSettingsModal.tsx`、`ThemeChoiceModal.tsx`、`ImagePickerModal.tsx`
+  - `src/logic/audio.ts`、`src/logic/tracing.ts`、`src/logic/storage.ts`
+- `App.tsx` 已改为路由+全局 store 编排：主页四大块（线条/数字/字母/装扮冒险）+ 家长区长按入口 + mission/metrics/theme 保留。
+- 已保留并接线：
+  - 每日任务 store/streak/ritual
+  - metrics 追踪与正向语音
+  - 主题选择与主题练习升级计数
+  - Parent Zone
+- 验证：
+  - `npm run build` 通过。
+  - Playwright 快速截图检查通过：`output/web-game/refactor-blocks-check/shot-0.png`（主页四块布局正常）。
+- 已进入提交 2（Dress-up Adventure）：
+  - `src/logic/missions.ts` 支持 `poolMode`（shapes/numbers/letters/mixed）并写入 mission。
+  - `src/logic/missionStore.ts` 支持在当天未开始时根据 poolMode 变更 mission。
+  - `src/modules/dressup/DressUpAdventure.tsx` 改为独立冒险流：节点卡 + 3 个微挑战 + 关卡庆祝覆盖层。
+  - Dress-up 内部挑战固定使用 `guide` 辅助模式，减少挫败。
+  - `App.tsx` 接线：Dress-up 使用单池任务并通过 missionStore 持久化当日进度。
+- 验证：
+  - `npm run build` 通过。
+  - Playwright 截图：`output/web-game/dressup-single-pool-check/shot-0.png`，默认任务池为线条，节点页正常渲染。
+- 已进入提交 3（Skate Shark）：
+  - 新增 `src/modules/skate/SkateTricks.ts`，提供 20 个固定 trick key（含中英名、故事提示、动画关键帧计划）。
+  - 新增 `src/modules/skate/TrickShowcase.tsx`，完成后可播放简化动作秀动画。
+  - `DressUpAdventure` 接入 Skate 面板：
+    - 4 套滑板主题风格入口（Skate Park / 头盔 / 护具 / 滑板）
+    - trick 轮播选择（自主选择“今天教哪个动作”）
+    - 完成微挑战后触发动作秀
+  - 鲨鱼样式扩展：新增 `skate` 主题与 `helmet/pads/board` 装饰绘制。
+  - 类型与本地存储升级兼容：`SharkTheme` 新增 `skate`，`themePracticeCounts` 增加 `skate` 计数。
+- 验证：
+  - `npm run build` 通过。
+  - Playwright 截图：`output/web-game/skate-showcase-check/shot-0.png`（Skate 面板和 trick 选择已出现）。
+- 已进入提交 4（Parent controls + rhythm gate）：
+  - `ParentZone` 新增控制：
+    - Dress-up 任务池（线条/数字/字母/混合）
+    - 每日时长目标（5/6/7/8 分钟）
+    - Dress-up 节奏门控（轻/中/关）
+    - Skate 模块开关
+  - `App.tsx` 全量接线上述配置并本地持久化。
+  - `DressUpAdventure` 新增节奏门控行为：
+    - 装扮/动作选择累计到阈值后，弹出“先做小挑战再继续装扮”。
+    - 完成一次微挑战后自动重置节奏计数，并继续先前的待执行装扮操作。
+- 验证：
+  - `npm run build` 通过。
+  - Playwright 截图：`output/web-game/parent-controls-check/shot-0.png`（Dress-up 页面渲染正常）。
+
+## 2026-02-25（换装大冒险重做）
+- 按新需求将原“装扮冒险”（滑板逻辑）拆分：
+  - 新增 `src/modules/skate/SkateAdventure.tsx`，保留原滑板玩法并改名为“滑板大冒险”。
+  - 重写 `src/modules/dressup/DressUpAdventure.tsx` 为真正“换装大冒险”。
+- 换装新机制：
+  - 点颜色先触发书写挑战，完成后才应用颜色（如黄色映射写 `Y`）。
+  - 配件支持拖拽到鲨鱼（触屏 pointer 拖拽）或点击；触发书写挑战后才装备。
+  - 配件挑战题目来源于家长设置任务池（线条/数字/字母/混合）。
+  - 保留主题切换和鲨鱼预览，挑战统一使用 guide 模式。
+- 首页结构调整：
+  - 同时显示“换装大冒险”和“滑板大冒险”两个独立入口，减少认知混淆。
+- 代码接线：
+  - `App.tsx` 新增 `skate` 路由，区分新换装与滑板模块。
+  - `HomeScreen` 增加 `onOpenSkate` 与新 tile。
+- 本地验证：
+  - `npm run build` 通过。
+  - 截图检查：
+    - `output/web-game/new-dressup-home-check/shot-0.png`（首页双冒险入口）
+    - `output/web-game/new-dressup-page-check/shot-0.png`（换装大冒险页面）
+    - `output/web-game/new-skate-page-check/shot-0.png`（滑板大冒险页面）
+
+## 2026-02-25（换装挑战无反馈 + 庆祝动画恢复修复）
+- 问题定位：`App.tsx` 在 `DressUpAdventure` 路由接线时传参名错误，写成了 `onAttemptChallenge`，而模块实际需要 `onChallengeAttempt`。这会导致换装书写结束时在尝试分析阶段抛错，表现为“写完没反应、无完成/纠错提示、不变装”。
+- 已完成修复：
+  - `App.tsx` 修正为 `onChallengeAttempt={onRequestAttempt}`。
+  - 新增全屏庆祝动画组件 `src/components/SharkReward.tsx`（当前鲨鱼配置 + 随机游动/跳跃/旋转动画 + 彩带），并在 `App.tsx` 全局接入。
+  - 每次书写完成 `onRequestComplete` 时触发该全屏庆祝动画（包含语音“太棒了”）。
+  - `TracePracticeView.tsx` 增强未完成提示：点数不足时增加引导音+语音+闪框，明确提示“还差一点点，再写一笔”。
+- 构建验证：
+  - `npm run build` 通过。
+- 自动化说明：
+  - 已尝试使用 `develop-web-game` 脚本执行换装流程截图，但该脚本在当前页面布局下坐标点击未稳定触发挑战弹窗；核心逻辑修复已完成，需以本地真机触控/鼠标流程再确认交互表现。
+- 追加修正：`TracePracticeView` 的 easy 成功判定从“任意 1 个点”调整为“至少达到 easy 最小点数（4 点）”，避免点一下就完成，保证未完成时会出现明确纠偏提示。
+- 追加构建验证：`npm run build` 再次通过。
+- 2026-02-25（第二次修复）
+  - 修复“未写完就判成功”：移除 easy 模式的快捷成功分支，改为统一走轨迹验证；提高 easy 判定阈值（minPoints/coverage/follow）。
+  - 修复“配件拖拽失效”：拖拽按钮启用 `touch-action: none` + `touch-none`，增加拖拽/点击区分（位移阈值 8px），防止 iPad 上点击事件抢占拖拽流程。
+  - 构建验证：`npm run build` 通过。
+- 2026-02-25（第三次修复）
+  - 修复“错误轨迹叠加后再写也成功”：在轨迹判定失败分支增加自动清空（清空 strokes/currentStroke、重置引导索引与返回气泡），确保每次失败后必须从起点重新写。
+  - 构建验证：`npm run build` 通过。
+- 2026-02-25（第四次修复）
+  - 多笔划误判修复：在 `TracePracticeView` 引入 `expectedStrokeCount`，未达到预期笔画数时只提示“继续下一笔”，不触发失败清空。
+  - 有效笔画计数仅统计点数>1 的笔画，避免轻触被当作一笔。
+  - 换装颜色挑战改为随机字母：移除颜色固定字母映射，新增随机字母挑选（避免连续重复同一字母）。
+  - 文案更新：颜色挑战提示改为“字母会随机出现”。
+  - 验证：`npm run build` 通过；Playwright 快速截图回归生成于 `output/web-game/dressup-random-multistroke-check/shot-0.png`。
+
+## 2026-02-26（横屏书写区域显示修复）
+- 用户反馈：iPad 横屏下所有书写页只能看到部分书写区域。
+- 已在 `TracePracticeView`（所有书写模式共用）完成布局修复：
+  - 中间容器从 `justify-center` 改为 `justify-start`，避免超高内容居中裁切。
+  - 画布尺寸改为基于 viewport 的自适应尺寸（横屏更小、竖屏更大），不再固定 `300/400`。
+  - 横屏下收紧顶部/卡片/底部间距，并缩小底部鲨鱼装饰占位。
+  - `canvas` 像素尺寸同步为动态尺寸，保持交互映射一致。
+- 下一步：`npm run build` 验证并汇报结果。
+- 验证：`npm run build` 已通过。
+- 自动化截图尝试：Playwright 客户端在当前沙箱环境下启动 Chromium 被权限拒绝（MachPort 权限错误），因此本轮只完成构建校验，视觉验证需用户本地设备确认。
+
+## 2026-02-26（字母 G 单笔连写修复）
+- 问题：大写 `G` 引导被拆成两划（`C` + 短横）。
+- 修复：将 `constants.ts` 中 `G` 的 `svgPath` 从双子路径改为单连续路径：
+  - 旧：`M ... C ... M ... L ...`
+  - 新：`M ... C ... C ... L ...`
+- 结果：`G` 会按单笔连写引导显示，不再拆成两划。
+- 验证：`npm run build` 通过。
+
+## 2026-02-26（换装挑战池去线条）
+- 用户反馈：换装大冒险又出现线条形状挑战，需要仅保留字母和数字书写。
+- 修复内容：
+  - `DressUpAdventure` 挑战选择逻辑移除 shapes 候选；`mixed` 仅在字母/数字中随机。
+  - 兼容旧配置：若历史值为 `shapes`，在换装逻辑里自动归一为 `mixed`（字母+数字）。
+  - `ParentZone` 移除换装任务池的“线条形状”选项。
+  - `HomeScreen` 挑战池文案更新为“混合（字母+数字）”。
+  - `storage` 默认换装池从 `shapes` 改为 `mixed`，并将旧 `shapes` 值迁移为 `mixed`。
+  - `starWand` 配件挑战从 shapes 改为字母 `S`。
+- 验证：`npm run build` 通过。
+
+## 2026-02-26（换装完成语音按具体配件播报）
+- 需求：换装完成后语音改为具体对象描述，例如“鲨鱼戴上了墨镜，你真棒”；移除时“鲨鱼卸下了墨镜，你真棒”。
+- 已实现：
+  - 在 `DressUpAdventure` 新增完成语音生成器 `getDressupCompletionMessage`。
+  - 按槽位区分动词：
+    - 帽子/面部/颈部：戴上 / 卸下
+    - 衣服/鞋子：穿上 / 脱下
+    - 物品：拿起 / 放下
+  - 颜色变更语音：`鲨鱼变成XX了，你真棒`（若颜色未变化则“保持了XX造型”）。
+  - 书写挑战成功后使用该文案同时显示成功提示并播报 TTS。
+- 验证：`npm run build` 通过。
+
+## 2026-02-26（换装语音被庆祝语音打断修复）
+- 现象：换装完成语音还没播完就被庆祝动画“太棒了”打断。
+- 根因：`speak()` 每次调用默认都会 `speechSynthesis.cancel()`，后触发的庆祝语音会中断前一个配件语音。
+- 修复：
+  - `src/logic/audio.ts`：`speak` 新增 `options.interrupt`，默认仍打断；当 `interrupt: false` 时不取消当前队列。
+  - `src/components/SharkReward.tsx`：庆祝语音改为 `speak('太棒了！', ..., { interrupt: false })`，变为排队播放。
+- 效果：先播“鲨鱼戴上/卸下...你真棒”，再播“太棒了”。
+- 验证：`npm run build` 通过。
+
+## 2026-02-26（新增喂食大冒险）
+- 用户需求：新增类似换装的“喂食大冒险”，食物仅字母/数字，先书写后投喂；支持主动投喂和鲨鱼主动点餐；点餐按序（字母 A-Z / 数字 0-9）；每次投喂后有丰富动画和记忆语音（A像什么、1像什么）。
+- 已完成实现：
+  - 新增模块 `src/modules/feed/FeedAdventure.tsx`
+    - 模式：`主动投喂` / `鲨鱼点餐`
+    - 食物池：`字母餐单` / `数字餐单`
+    - 书写门控：每次投喂都先进入 `TracePracticeView` 书写，完成后才喂食。
+    - 点餐顺序：字母按 `A-Z`，数字按 `0-9` 循环。
+    - 动画反馈：食物飞入、鲨鱼动态、爱心/泡泡、成功反馈浮层。
+  - 新增联想记忆库 `src/modules/feed/feedAssociations.ts`
+    - A-Z 每个字母 3 条“像什么”
+    - 0-9 每个数字 3 条“像什么”
+    - 投喂成功和点餐提示会调用随机联想语音。
+  - 首页接入新入口：`喂食大冒险`
+    - 修改 `src/modules/home/HomeScreen.tsx`
+    - 修改 `App.tsx` 路由，新增 `feed` 页面。
+  - 练习进度衔接：喂食挑战完成后计入练习进度与主题熟练度/创意泡泡，但不触发全屏奖励弹层，避免覆盖喂食专属动画。
+- 验证：`npm run build` 通过。
+- 喂食交互改为拖拽触发：
+  - 主动投喂：拖字母/数字卡到鲨鱼区域才开始书写。
+  - 鲨鱼点餐：拖当前点餐符号到鲨鱼区域才开始书写。
+  - 已移除点击直接开始书写路径。
+  - 增加拖拽跟手字符与鲨鱼落区高亮反馈。
+- 验证：`npm run build` 通过。
+- 喂食页“字母显示不全”修复：
+  - 将食物项改为全量展示（字母 A-Z、数字 0-9），按“鲨鱼上排 + 下排”两行围绕显示。
+  - 点餐模式下仍保持顺序逻辑，只允许拖当前目标字符，其余字符仅展示不可拖。
+  - 主动投喂模式下上下两行全量字符均可拖拽。
+  - 去掉了主动模式旧的 10 项截断列表。
+- 验证：`npm run build` 通过。
+- 喂食布局重排（按用户反馈）：
+  - 上下两行字符区从 `overflow-x-auto` 横向滚动改为等分网格（无横向滚动）。
+  - 每行按当前字符数动态 `gridTemplateColumns`，确保字母 A-Z / 数字 0-9 全量可见。
+  - token 尺寸改为固定小格（`w-full h-7 md:h-9`），保证在 iPad 上同屏显示完整。
+- 验证：`npm run build` 通过。
+- 点餐模式界面简化：右侧面板在 `request` 模式下隐藏“当前重点”大字卡，只保留鲨鱼周围字母/数字与点餐提示。
+- 喂食书写判定修复：
+  - `TracePracticeView` 在喂食模块中不再使用 `successPreset="easy"`，改为 `normal`。
+  - 当全局难度为 `guide` 时，喂食挑战内部提升为 `practice` 判定，避免乱写直接通过。
+- 验证：`npm run build` 通过。
+- 贴纸区文案修复：
+  - 删除书写页顶部贴纸/emoji 下方的 `item.word` 文案，避免换贴纸后仍显示原单词。
+  - 放大贴纸与默认 emoji 尺寸，用贴纸内容补足删除单词后的空间。
+- 影响文件：`src/modules/learn/TracePracticeView.tsx`
+- 验证：`npm run build` 通过。
+- 贴纸语音联动修复：
+  - 新增 `customImageVoices` 存储（与 `customImages` 分离）并持久化到 localStorage。
+  - 贴纸选择保存时写入语音标签（优先英文 labelEn，如 crab）。
+  - 书写页播报改为优先使用贴纸语音词；例如字母 C 选择 crab 贴纸后，会播 `C` + `crab`。
+  - 重播（↺）同样使用贴纸语音词。
+- 涉及文件：`ImagePickerModal.tsx`、`TracePracticeView.tsx`、`App.tsx`、`storage.ts`、learn/dressup/skate/feed 相关传参。
+- 验证：`npm run build` 通过。

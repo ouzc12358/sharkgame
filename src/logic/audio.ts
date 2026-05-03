@@ -98,39 +98,41 @@ export const playSound = (type: 'start' | 'end' | 'guide') => {
     ctx.resume().catch(() => undefined);
   }
 
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
   const now = ctx.currentTime;
 
+  const playTone = (
+    frequency: number,
+    startOffset: number,
+    duration: number,
+    wave: OscillatorType,
+    volume: number
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const startAt = now + startOffset;
+    osc.type = wave;
+    osc.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(volume, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+    osc.start(startAt);
+    osc.stop(startAt + duration);
+  };
+
   if (type === 'start') {
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(280, now);
-    osc.frequency.exponentialRampToValueAtTime(460, now + 0.1);
-    gain.gain.setValueAtTime(0.05, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    osc.start(now);
-    osc.stop(now + 0.1);
+    playTone(330, 0, 0.08, 'sine', 0.035);
+    playTone(470, 0.055, 0.1, 'sine', 0.025);
     return;
   }
 
   if (type === 'end') {
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, now);
-    gain.gain.setValueAtTime(0.05, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    osc.start(now);
-    osc.stop(now + 0.12);
+    playTone(523.25, 0, 0.12, 'sine', 0.035);
+    playTone(659.25, 0.08, 0.13, 'sine', 0.035);
+    playTone(783.99, 0.16, 0.16, 'triangle', 0.03);
     return;
   }
 
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(220, now);
-  osc.frequency.linearRampToValueAtTime(180, now + 0.22);
-  gain.gain.setValueAtTime(0.03, now);
-  gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
-  osc.start(now);
-  osc.stop(now + 0.22);
+  playTone(260, 0, 0.14, 'triangle', 0.02);
+  playTone(220, 0.1, 0.16, 'triangle', 0.018);
 };

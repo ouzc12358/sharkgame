@@ -1,0 +1,18 @@
+{
+  "coralLockedInitially": true,
+  "chineseNumberPromptTriggered": true,
+  "allNumbersCompleted": true,
+  "coralUnlockedAfterNumbers": true,
+  "coralSelectableAfterUnlock": true,
+  "spoken": [
+    {
+      "text": "欢迎来到鲨鱼字母数字乐园！",
+      "lang": "zh-CN"
+    },
+    {
+      "text": "数字一",
+      "lang": "zh-CN"
+    }
+  ],
+  "errors": []
+}

@@ -2,6 +2,7 @@ import React from 'react';
 import { DressupMissionPoolMode } from '../../../types';
 import FriendlyShark from '../../components/FriendlyShark';
 import { SharkConfig, SharkTheme } from '../../../types';
+import AnimalEncouragement from '../../components/AnimalEncouragement';
 
 interface HomeScreenProps {
   onOpenShapes: () => void;
@@ -61,6 +62,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <p className="text-xs md:text-sm text-ocean-700 font-black mt-1">🔥 连续 {streak} 天</p>
           </div>
         </div>
+
+        <AnimalEncouragement className="mb-4 md:mb-6" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 pb-8">
           <button onClick={onOpenShapes} className={TILE_BASE}>

@@ -13,7 +13,7 @@ interface ImagePickerModalProps {
 
 const LETTER_ASSOCIATIONS: Record<string, string[]> = {
   A: ['Apple', 'Argo', 'Ant', 'Airplane'],
-  B: ['Ball', 'Boat', 'Bird', 'Banana'],
+  B: ['Blue Shark', 'Ball', 'Boat', 'Bird', 'Banana'],
   C: ['Cat', 'Car', 'Cake', 'Crab'],
   D: ['Dog', 'Duck', 'Drum', 'Dolphin'],
   E: ['Egg', 'Elephant', 'Earth', 'Engine'],
@@ -30,11 +30,11 @@ const LETTER_ASSOCIATIONS: Record<string, string[]> = {
   P: ['Pig', 'Panda', 'Pizza', 'Pear'],
   Q: ['Queen', 'Quilt', 'Quail', 'Quartz'],
   R: ['Rabbit', 'Rainbow', 'Rocket', 'Rose'],
-  S: ['Sun', 'Shark', 'Shell', 'Star'],
+  S: ['Shark', 'Sun', 'Shell', 'Star', 'Seal'],
   T: ['Turtle', 'Train', 'Tree', 'Tiger'],
   U: ['Umbrella', 'Unicorn', 'Up', 'Udon'],
   V: ['Violin', 'Vase', 'Volcano', 'Van'],
-  W: ['Whale', 'Wave', 'Watermelon', 'Wind'],
+  W: ['Whale', 'Wave', 'Watermelon', 'Wind', 'Wolf'],
   X: ['Xylophone', 'Xray', 'Xmas', 'Xerox'],
   Y: ['Yacht', 'Yak', 'YoYo', 'Yam'],
   Z: ['Zebra', 'Zoo', 'Zigzag', 'Zipper'],
@@ -78,6 +78,7 @@ const WORD_EMOJI: Record<string, string> = {
   boat: '⛵',
   bird: '🐦',
   banana: '🍌',
+  'blue shark': '🦈',
   cat: '🐱',
   car: '🚗',
   cake: '🎂',
@@ -147,6 +148,7 @@ const WORD_EMOJI: Record<string, string> = {
   sun: '☀️',
   shark: '🦈',
   shell: '🐚',
+  seal: '🦭',
   star: '⭐',
   turtle: '🐢',
   train: '🚂',
@@ -164,6 +166,7 @@ const WORD_EMOJI: Record<string, string> = {
   wave: '🌊',
   watermelon: '🍉',
   wind: '💨',
+  wolf: '🐺',
   xylophone: '🎼',
   xray: '🩻',
   xmas: '🎄',
@@ -222,6 +225,7 @@ const WORD_ZH: Record<string, string> = {
   boat: '小船',
   bird: '小鸟',
   banana: '香蕉',
+  'blue shark': '蓝色鲨鱼',
   cat: '猫',
   car: '汽车',
   cake: '蛋糕',
@@ -291,6 +295,7 @@ const WORD_ZH: Record<string, string> = {
   sun: '太阳',
   shark: '鲨鱼',
   shell: '贝壳',
+  seal: '海豹',
   star: '星星',
   turtle: '乌龟',
   train: '火车',
@@ -308,6 +313,7 @@ const WORD_ZH: Record<string, string> = {
   wave: '海浪',
   watermelon: '西瓜',
   wind: '风',
+  wolf: '狼',
   xylophone: '木琴',
   xray: 'X光',
   xmas: '圣诞树',
@@ -372,8 +378,8 @@ const buildWordSticker = (item: LetterConfig, word: string): StickerItem => {
   const emoji = WORD_EMOJI[key] || item.emoji || '✨';
   const labelZh = WORD_ZH[key] || word;
   const hue = ((word.charCodeAt(0) || 0) + (item.char.codePointAt(0) || 0) * 7) % 360;
-  const bgA = `hsl(${hue}, 85%, 80%)`;
-  const bgB = `hsl(${(hue + 30) % 360}, 85%, 68%)`;
+  const bgA = key.includes('blue') ? '#bae6fd' : `hsl(${hue}, 85%, 80%)`;
+  const bgB = key.includes('blue') ? '#38bdf8' : `hsl(${(hue + 30) % 360}, 85%, 68%)`;
 
   const svg = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">

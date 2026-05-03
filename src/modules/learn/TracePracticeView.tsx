@@ -16,6 +16,8 @@ import { parseViewBox } from '../../logic/viewBox';
 import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import ImagePickerModal from '../../components/ImagePickerModal';
+import AnimalEncouragement from '../../components/AnimalEncouragement';
+import { pickAnyEncouragement } from '../../data/encouragement';
 
 const DIFFICULTY_CONFIG: Record<
   DifficultyMode,
@@ -417,7 +419,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
     if (isSuccess) {
       playSound('end');
-      setHelperMessage('太棒啦，完成啦');
+      setHelperMessage(pickAnyEncouragement());
       setReturnBubble(null);
       window.setTimeout(onComplete, 450);
       return;
@@ -708,6 +710,9 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
             )}
             <p className="mt-2 text-gray-400 font-bold text-lg">{isDemonstrating ? '看这里！' : helperMessage}</p>
             {!isDemonstrating && <p className="text-xs text-gray-400 mt-1">小鲨鱼在陪你慢慢练习</p>}
+            {!isDemonstrating && !isLandscape && (
+              <AnimalEncouragement compact className="mt-3 w-full max-w-md bg-ocean-50/80 border-ocean-100" />
+            )}
           </div>
         </div>
       </div>
