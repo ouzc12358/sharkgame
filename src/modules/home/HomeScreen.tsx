@@ -8,6 +8,7 @@ interface HomeScreenProps {
   onOpenShapes: () => void;
   onOpenNumbers: () => void;
   onOpenLetters: () => void;
+  onOpenHanziWriting: () => void;
   onOpenHanzi: () => void;
   onOpenFeed: () => void;
   onOpenDressup: () => void;
@@ -28,6 +29,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenShapes,
   onOpenNumbers,
   onOpenLetters,
+  onOpenHanziWriting,
   onOpenHanzi,
   onOpenFeed,
   onOpenDressup,
@@ -84,6 +86,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="text-5xl mb-2">🔤</div>
             <p className="text-3xl font-black text-ocean-900">字母</p>
             <p className="text-base font-bold text-gray-500 mt-1">Letters</p>
+          </button>
+
+          <button onClick={onOpenHanziWriting} className={TILE_BASE}>
+            <div className="text-5xl mb-2">🖌️</div>
+            <p className="text-3xl font-black text-ocean-900">汉字书写</p>
+            <p className="text-base font-bold text-gray-500 mt-1">先笔画，再写字</p>
           </button>
 
           <button onClick={onOpenHanzi} className={TILE_BASE}>

@@ -73,6 +73,7 @@ interface TracePracticeViewProps {
   themeUpgradeLevel: number;
   successPreset?: 'normal' | 'easy';
   skipDemo?: boolean;
+  allowStickerCustomization?: boolean;
 }
 
 const getViewportSize = () => ({
@@ -96,6 +97,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   themeUpgradeLevel,
   successPreset = 'normal',
   skipDemo = false,
+  allowStickerCustomization = true,
 }) => {
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -530,13 +532,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   ) : (
                     <span className={`${isLandscape ? 'text-6xl' : 'text-7xl md:text-8xl'} select-none animate-bounce-gentle block`}>{item.emoji}</span>
                   )}
-                  <button
-                    onClick={() => setShowMagicModal(true)}
-                    className="absolute -bottom-2 -right-2 bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 hover:bg-purple-600"
-                    title="Customize Image"
-                  >
-                    ✨
-                  </button>
+                  {allowStickerCustomization && (
+                    <button
+                      onClick={() => setShowMagicModal(true)}
+                      className="absolute -bottom-2 -right-2 bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 hover:bg-purple-600"
+                      title="Customize Image"
+                    >
+                      ✨
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -767,13 +771,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
         />
       </div>
 
-      <ImagePickerModal
-        isOpen={showMagicModal}
-        onClose={() => setShowMagicModal(false)}
-        item={item}
-        currentImage={customImage}
-        onSave={(img, voiceLabel) => onUpdateImage(img, voiceLabel)}
-      />
+      {allowStickerCustomization && (
+        <ImagePickerModal
+          isOpen={showMagicModal}
+          onClose={() => setShowMagicModal(false)}
+          item={item}
+          currentImage={customImage}
+          onSave={(img, voiceLabel) => onUpdateImage(img, voiceLabel)}
+        />
+      )}
     </div>
   );
 };

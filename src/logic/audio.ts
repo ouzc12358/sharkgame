@@ -19,11 +19,11 @@ const NUMBER_ZH_MAP: Record<string, string> = {
 };
 
 const LETTER_NAME_SPEECH: Record<string, string> = {
-  A: 'ay',
+  A: 'A',
   B: 'bee',
   C: 'see',
   D: 'dee',
-  E: 'ee',
+  E: 'E',
   F: 'eff',
   G: 'gee',
   H: 'aitch',
@@ -48,6 +48,7 @@ const LETTER_NAME_SPEECH: Record<string, string> = {
 };
 
 let audioCtx: AudioContext | null = null;
+let speechRequestId = 0;
 
 const getAudioCtx = () => {
   if (audioCtx) return audioCtx;
@@ -96,6 +97,40 @@ const configureUtterance = (
   if (voice) utterance.voice = voice;
 };
 
+const queueWhenVoicesReady = (
+  requestId: number,
+  enqueue: (synthesis: SpeechSynthesis) => void
+) => {
+  const synthesis = window.speechSynthesis;
+  let finished = false;
+  let fallbackTimer: number | null = null;
+
+  const run = () => {
+    if (finished) return;
+    finished = true;
+    synthesis.removeEventListener('voiceschanged', run);
+    if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+    if (requestId !== speechRequestId || !AUDIO_PREFS.ttsEnabled) return;
+    enqueue(synthesis);
+  };
+
+  if (synthesis.getVoices().length > 0) {
+    run();
+    return;
+  }
+
+  synthesis.addEventListener('voiceschanged', run, { once: true });
+  fallbackTimer = window.setTimeout(run, 240);
+};
+
+const beginSpeechRequest = (interrupt: boolean) => {
+  if (interrupt) {
+    speechRequestId += 1;
+    window.speechSynthesis.cancel();
+  }
+  return speechRequestId;
+};
+
 export const speak = (
   text: string,
   lang: 'en-US' | 'zh-CN' = 'zh-CN',
@@ -104,12 +139,12 @@ export const speak = (
 ) => {
   if (!AUDIO_PREFS.ttsEnabled) return;
   if (!('speechSynthesis' in window)) return;
-  if (options?.interrupt !== false) {
-    window.speechSynthesis.cancel();
-  }
-  const utterance = new SpeechSynthesisUtterance(text);
-  configureUtterance(utterance, lang, rate);
-  window.speechSynthesis.speak(utterance);
+  const requestId = beginSpeechRequest(options?.interrupt !== false);
+  queueWhenVoicesReady(requestId, (synthesis) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    configureUtterance(utterance, lang, rate);
+    synthesis.speak(utterance);
+  });
 };
 
 const getLetterSpeech = (letter: string) => {
@@ -124,16 +159,17 @@ export const speakLetterName = (letter: string) => {
 export const speakLetterThenWord = (letter: string, word: string) => {
   if (!AUDIO_PREFS.ttsEnabled) return;
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+  const requestId = beginSpeechRequest(true);
+  queueWhenVoicesReady(requestId, (synthesis) => {
+    const letterUtterance = new SpeechSynthesisUtterance(getLetterSpeech(letter));
+    configureUtterance(letterUtterance, 'en-US', 0.56);
 
-  const letterUtterance = new SpeechSynthesisUtterance(getLetterSpeech(letter));
-  configureUtterance(letterUtterance, 'en-US', 0.56);
+    const wordUtterance = new SpeechSynthesisUtterance(word);
+    configureUtterance(wordUtterance, 'en-US', 0.52);
 
-  const wordUtterance = new SpeechSynthesisUtterance(word);
-  configureUtterance(wordUtterance, 'en-US', 0.52);
-
-  window.speechSynthesis.speak(letterUtterance);
-  window.speechSynthesis.speak(wordUtterance);
+    synthesis.speak(letterUtterance);
+    synthesis.speak(wordUtterance);
+  });
 };
 
 const isNumberItem = (char: string) => /^[0-9]$/.test(char);

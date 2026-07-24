@@ -13,6 +13,7 @@ import DressUpAdventure from './src/modules/dressup/DressUpAdventure';
 import SkateAdventure from './src/modules/skate/SkateAdventure';
 import FeedAdventure from './src/modules/feed/FeedAdventure';
 import HanziPinyinMode from './src/modules/hanzi/HanziPinyinMode';
+import HanziWritingMode from './src/modules/hanzi/HanziWritingMode';
 import MissionRitual from './src/components/MissionRitual';
 import ParentZone from './src/components/ParentZone';
 import SharkSettingsModal from './src/components/SharkSettingsModal';
@@ -45,7 +46,16 @@ import { setAudioPreferenceFlags, speak } from './src/logic/audio';
 import { loadChildState, saveChildState } from './src/logic/storage';
 import { createDefaultAccessories, getThemeUpgradeLevel, SHARK_THEME_PRESETS } from './src/modules/dressup/sharkStyle';
 
-type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'hanzi' | 'dressup' | 'feed' | 'skate';
+type Route =
+  | 'home'
+  | 'shapes'
+  | 'numbers'
+  | 'letters'
+  | 'hanzi-writing'
+  | 'hanzi'
+  | 'dressup'
+  | 'feed'
+  | 'skate';
 
 const formatPracticeItemKey = (itemKey: string) => {
   const [type, char] = itemKey.split(':');
@@ -53,6 +63,7 @@ const formatPracticeItemKey = (itemKey: string) => {
   if (type === 'letter') return `字母 ${char}`;
   if (type === 'number') return `数字 ${char}`;
   if (type === 'shape') return `线条 ${char}`;
+  if (type === 'hanzi') return `汉字 ${char}`;
   return itemKey;
 };
 
@@ -68,9 +79,10 @@ const findConfigByMissionItem = (item: MissionItem): LetterConfig | null => {
   return source.find((entry) => entry.char === item.char) || null;
 };
 
-const missionTypeForCategory = (category: LearningCategory): MissionItem['type'] => {
+const missionTypeForCategory = (category: LearningCategory): MissionItem['type'] | null => {
   if (category === 'numbers') return 'number';
   if (category === 'shapes') return 'shape';
+  if (category === 'hanzi') return null;
   return 'letter';
 };
 
@@ -257,6 +269,7 @@ export default function App() {
   ) => {
     onRequestComplete(item);
     const type = missionTypeForCategory(category);
+    if (!type) return;
     const matched =
       todayMission.items.find((entry) => entry.char === missionItem.char && entry.type === type) ||
       todayMission.items.find((entry) => entry.char === item.char && entry.type === type);
@@ -435,6 +448,26 @@ export default function App() {
       );
     }
 
+    if (route === 'hanzi-writing') {
+      return (
+        <HanziWritingMode
+          progress={completedLetters}
+          customImages={customImages}
+          customImageVoices={customImageVoices}
+          difficultyMode={difficultyMode}
+          sharkConfig={sharkConfig}
+          theme={currentTheme}
+          themeUpgradeLevel={currentThemeUpgradeLevel}
+          onBack={() => setRoute('home')}
+          onOpenSettings={() => setShowSettings(true)}
+          onRequestComplete={(item, _category, _minutesDelta) => onRequestComplete(item)}
+          onRequestAttempt={onRequestAttempt}
+          getProgressLevels={getProgressLevels}
+          onUpdateImage={handleUpdateImage}
+        />
+      );
+    }
+
     if (route === 'dressup') {
       return (
         <DressUpAdventure
@@ -524,6 +557,7 @@ export default function App() {
         onOpenShapes={() => setRoute('shapes')}
         onOpenNumbers={() => setRoute('numbers')}
         onOpenLetters={() => setRoute('letters')}
+        onOpenHanziWriting={() => setRoute('hanzi-writing')}
         onOpenHanzi={() => setRoute('hanzi')}
         onOpenFeed={() => setRoute('feed')}
         onOpenDressup={() => setRoute('dressup')}

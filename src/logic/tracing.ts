@@ -2,7 +2,7 @@ import { Point, StrokeGuide } from '../../types';
 import { MissionItem } from './missions';
 import { clampToViewBox, parseViewBox } from './viewBox';
 
-export type LearningCategory = 'letters' | 'numbers' | 'shapes';
+export type LearningCategory = 'letters' | 'numbers' | 'shapes' | 'hanzi';
 
 export const dist = (p1: Point, p2: Point) => {
   const dx = p1.x - p2.x;
@@ -103,6 +103,7 @@ export const getPracticeItemKey = (
 ) => {
   if (category === 'numbers' || category === 'number') return `number:${char}`;
   if (category === 'shapes' || category === 'shape') return `shape:${char}`;
+  if (category === 'hanzi') return `hanzi:${char}`;
   return `letter:${char}`;
 };
 
