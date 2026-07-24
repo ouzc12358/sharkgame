@@ -12,6 +12,7 @@ import LettersMode from './src/modules/learn/LettersMode';
 import DressUpAdventure from './src/modules/dressup/DressUpAdventure';
 import SkateAdventure from './src/modules/skate/SkateAdventure';
 import FeedAdventure from './src/modules/feed/FeedAdventure';
+import HanziPinyinMode from './src/modules/hanzi/HanziPinyinMode';
 import MissionRitual from './src/components/MissionRitual';
 import ParentZone from './src/components/ParentZone';
 import SharkSettingsModal from './src/components/SharkSettingsModal';
@@ -44,7 +45,7 @@ import { setAudioPreferenceFlags, speak } from './src/logic/audio';
 import { loadChildState, saveChildState } from './src/logic/storage';
 import { createDefaultAccessories, getThemeUpgradeLevel, SHARK_THEME_PRESETS } from './src/modules/dressup/sharkStyle';
 
-type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'dressup' | 'feed' | 'skate';
+type Route = 'home' | 'shapes' | 'numbers' | 'letters' | 'hanzi' | 'dressup' | 'feed' | 'skate';
 
 const formatPracticeItemKey = (itemKey: string) => {
   const [type, char] = itemKey.split(':');
@@ -422,6 +423,18 @@ export default function App() {
       );
     }
 
+    if (route === 'hanzi') {
+      return (
+        <HanziPinyinMode
+          onBack={() => setRoute('home')}
+          onOpenSettings={() => setShowSettings(true)}
+          sharkConfig={sharkConfig}
+          theme={currentTheme}
+          themeUpgradeLevel={currentThemeUpgradeLevel}
+        />
+      );
+    }
+
     if (route === 'dressup') {
       return (
         <DressUpAdventure
@@ -511,6 +524,7 @@ export default function App() {
         onOpenShapes={() => setRoute('shapes')}
         onOpenNumbers={() => setRoute('numbers')}
         onOpenLetters={() => setRoute('letters')}
+        onOpenHanzi={() => setRoute('hanzi')}
         onOpenFeed={() => setRoute('feed')}
         onOpenDressup={() => setRoute('dressup')}
         onOpenSkate={() => setRoute('skate')}

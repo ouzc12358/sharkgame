@@ -16,7 +16,7 @@ interface FriendlySharkProps {
 }
 
 const renderBackpack = (fill: string, stroke: string, accent: string) => (
-  <g transform="translate(98, 95) rotate(8)">
+  <g transform="translate(128, 48) rotate(8) scale(0.82)">
     <path d="M -8 -6 Q 5 -16 18 -6" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />
     <rect x="-14" y="-6" width="34" height="28" rx="6" fill={fill} stroke={stroke} strokeWidth="2.5" />
     <rect x="-10" y="-2" width="26" height="8" rx="3" fill={accent} opacity="0.76" />
@@ -30,7 +30,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
   switch (id) {
     case 'topHat':
       return (
-        <g transform="translate(86, 18)">
+        <g transform="translate(94, 15)">
           <rect x="2" y="8" width="42" height="7" rx="3" fill="#111827" />
           <rect x="10" y="-18" width="26" height="28" rx="4" fill="#1f2937" />
           <rect x="10" y="-4" width="26" height="5" rx="2" fill="#ef4444" />
@@ -38,7 +38,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'crown':
       return (
-        <g transform="translate(88, 8) rotate(-8)">
+        <g transform="translate(96, 5) rotate(-8)">
           <path
             d="M 0 20 L 8 5 L 16 20 L 24 5 L 32 20 L 40 5 L 48 20 Z"
             fill="#facc15"
@@ -50,7 +50,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'helmet':
       return (
-        <g transform="translate(82, 24)">
+        <g transform="translate(92, 18)">
           <path d="M 0 12 Q 10 -2 26 4 Q 32 10 32 20 L 0 20 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2.5" />
           <rect x="1" y="18" width="30" height="6" rx="3" fill="#fca5a5" stroke="#991b1b" strokeWidth="1.8" />
           <rect x="8" y="9" width="10" height="4" rx="2" fill="#fef2f2" opacity="0.82" />
@@ -58,7 +58,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'beanie':
       return (
-        <g transform="translate(84, 22)">
+        <g transform="translate(92, 14)">
           <path d="M 0 18 Q 6 0 24 0 Q 42 0 48 18 Z" fill="#1d4ed8" stroke="#1e3a8a" strokeWidth="2" />
           <rect x="0" y="16" width="48" height="10" rx="4" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="2" />
           <circle cx="24" cy="0" r="5" fill="#93c5fd" stroke="#1e3a8a" strokeWidth="1.5" />
@@ -66,7 +66,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'rainHat':
       return (
-        <g transform="translate(82, 20)">
+        <g transform="translate(94, 13)">
           <ellipse cx="24" cy="14" rx="28" ry="9" fill="#fef08a" stroke="#a16207" strokeWidth="2" />
           <path d="M 6 14 Q 10 -4 24 -4 Q 38 -4 42 14" fill="#fde047" stroke="#a16207" strokeWidth="2" />
         </g>
@@ -74,7 +74,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
 
     case 'hoodie':
       return (
-        <g transform="translate(66, 104)">
+        <g transform="translate(84, 88) scale(0.9)">
           <path d="M 0 -6 Q 12 -20 28 -6 L 42 -6 Q 58 8 54 28 L 0 28 Q -4 8 0 -6 Z" fill="#0ea5e9" stroke="#0c4a6e" strokeWidth="2.2" />
           <circle cx="20" cy="9" r="5" fill="#bae6fd" />
           <circle cx="35" cy="9" r="5" fill="#bae6fd" />
@@ -82,14 +82,14 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'tshirt':
       return (
-        <g transform="translate(64, 104)">
+        <g transform="translate(82, 90) scale(0.9)">
           <path d="M 4 -4 L 18 -12 L 36 -12 L 52 -4 L 52 24 L 4 24 Z" fill="#fde68a" stroke="#a16207" strokeWidth="2" />
           <path d="M 20 -12 Q 28 -4 36 -12" fill="none" stroke="#a16207" strokeWidth="2" />
         </g>
       );
     case 'jacket':
       return (
-        <g transform="translate(64, 102)">
+        <g transform="translate(82, 88) scale(0.9)">
           <rect x="2" y="-8" width="52" height="34" rx="10" fill="#1f2937" stroke="#0f172a" strokeWidth="2.2" />
           <path d="M 28 -6 L 28 24" stroke="#f8fafc" strokeWidth="2" />
           <circle cx="20" cy="9" r="1.8" fill="#f8fafc" />
@@ -98,7 +98,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'armor':
       return (
-        <g transform="translate(63, 101)">
+        <g transform="translate(82, 87) scale(0.88)">
           <path d="M 6 -6 L 48 -6 L 56 10 L 48 30 L 6 30 L -2 10 Z" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
           <path d="M 10 2 L 44 2" stroke="#e2e8f0" strokeWidth="2" />
           <path d="M 10 12 L 44 12" stroke="#e2e8f0" strokeWidth="2" />
@@ -106,7 +106,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'raincoat':
       return (
-        <g transform="translate(64, 102)">
+        <g transform="translate(82, 88) scale(0.9)">
           <path d="M 2 -6 Q 12 -18 28 -12 Q 44 -18 54 -6 L 54 30 L 2 30 Z" fill="#facc15" stroke="#ca8a04" strokeWidth="2.5" />
           <path d="M 28 -10 L 28 30" stroke="#fef3c7" strokeWidth="2" />
         </g>
@@ -114,28 +114,28 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
 
     case 'sneakers':
       return (
-        <g transform="translate(70, 142)">
+        <g transform="translate(78, 142)">
           <rect x="-4" y="0" width="24" height="8" rx="4" fill="#f8fafc" stroke="#1e293b" strokeWidth="2" />
           <rect x="28" y="-4" width="24" height="8" rx="4" fill="#f8fafc" stroke="#1e293b" strokeWidth="2" />
         </g>
       );
     case 'flippers':
       return (
-        <g transform="translate(66, 143)">
+        <g transform="translate(74, 143)">
           <path d="M 0 0 Q 14 -4 26 3 Q 18 9 0 8 Z" fill="#22d3ee" stroke="#0e7490" strokeWidth="2" />
           <path d="M 30 -4 Q 46 -8 62 0 Q 54 8 32 6 Z" fill="#22d3ee" stroke="#0e7490" strokeWidth="2" />
         </g>
       );
     case 'boots':
       return (
-        <g transform="translate(70, 140)">
+        <g transform="translate(78, 140)">
           <path d="M 0 -6 L 14 -6 L 14 8 L -2 8 Q -8 8 -8 3 Q -8 -2 0 -2 Z" fill="#92400e" stroke="#451a03" strokeWidth="2" />
           <path d="M 30 -8 L 44 -8 L 44 8 L 28 8 Q 22 8 22 3 Q 22 -2 30 -2 Z" fill="#92400e" stroke="#451a03" strokeWidth="2" />
         </g>
       );
     case 'rollerSkates':
       return (
-        <g transform="translate(70, 141)">
+        <g transform="translate(78, 141)">
           <rect x="-2" y="-6" width="20" height="8" rx="3" fill="#c4b5fd" stroke="#6d28d9" strokeWidth="2" />
           <rect x="30" y="-8" width="20" height="8" rx="3" fill="#c4b5fd" stroke="#6d28d9" strokeWidth="2" />
           <circle cx="2" cy="5" r="2.8" fill="#1f2937" />
@@ -147,7 +147,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
 
     case 'board':
       return (
-        <g transform="translate(74, 132)">
+        <g transform="translate(76, 145) scale(0.92)">
           <rect x="-18" y="-4" width="86" height="14" rx="7" fill="#0ea5e9" stroke="#0f172a" strokeWidth="2" />
           <circle cx="-4" cy="14" r="5" fill="#1f2937" />
           <circle cx="54" cy="14" r="5" fill="#1f2937" />
@@ -157,7 +157,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'book':
       return (
-        <g transform="translate(104, 98) rotate(-12)">
+        <g transform="translate(174, 94) rotate(-12)">
           <rect x="-14" y="-10" width="26" height="28" rx="3" fill="#60a5fa" stroke="#1d4ed8" strokeWidth="2" />
           <line x1="-2" y1="-10" x2="-2" y2="18" stroke="#dbeafe" strokeWidth="2" />
           <circle cx="6" cy="4" r="2" fill="#dbeafe" />
@@ -165,7 +165,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'starWand':
       return (
-        <g transform="translate(108, 92) rotate(18)">
+        <g transform="translate(174, 76) rotate(18) scale(0.9)">
           <path d="M 0 0 L 4 11 L 16 11 L 7 17 L 11 28 L 0 21 L -11 28 L -7 17 L -16 11 L -4 11 Z" fill="#facc15" stroke="#b45309" strokeWidth="2" />
           <rect x="-1" y="22" width="2" height="26" rx="1" fill="#92400e" />
         </g>
@@ -181,7 +181,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
 
     case 'sunglasses':
       return (
-        <g transform="translate(58, 65)">
+        <g transform="translate(57, 65)">
           <circle cx="-5" cy="0" r="15" fill="#1f2937" opacity="0.8" />
           <circle cx="25" cy="0" r="15" fill="#1f2937" opacity="0.8" />
           <line x1="10" y1="0" x2="10" y2="0" stroke="#1f2937" strokeWidth="3" />
@@ -189,7 +189,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'glasses':
       return (
-        <g transform="translate(58, 65)">
+        <g transform="translate(57, 65)">
           <circle cx="-4" cy="0" r="12" fill="none" stroke="#334155" strokeWidth="2.2" />
           <circle cx="24" cy="0" r="12" fill="none" stroke="#334155" strokeWidth="2.2" />
           <line x1="8" y1="0" x2="12" y2="0" stroke="#334155" strokeWidth="2.2" />
@@ -197,7 +197,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'monocle':
       return (
-        <g transform="translate(58, 66)">
+        <g transform="translate(57, 66)">
           <circle cx="-4" cy="0" r="14" fill="none" stroke="#475569" strokeWidth="2.6" />
           <line x1="6" y1="8" x2="14" y2="18" stroke="#475569" strokeWidth="2" />
         </g>
@@ -213,7 +213,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
 
     case 'bowtie':
       return (
-        <g transform="translate(60, 116) rotate(10)">
+        <g transform="translate(110, 96) rotate(10) scale(0.85)">
           <path d="M 0 0 L -10 -10 L -10 10 Z" fill="#ef4444" stroke="#b91c1c" strokeWidth="2" />
           <path d="M 0 0 L 10 -10 L 10 10 Z" fill="#ef4444" stroke="#b91c1c" strokeWidth="2" />
           <circle cx="0" cy="0" r="3" fill="#b91c1c" />
@@ -221,7 +221,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'scarf':
       return (
-        <g transform="translate(72, 108) rotate(6)">
+        <g transform="translate(124, 84) rotate(6) scale(0.72)">
           <path
             d="M -28 -6 Q -8 -14 12 -8 Q 24 -4 30 4 Q 20 16 -4 18 Q -20 18 -30 8 Z"
             fill="#ef4444"
@@ -233,7 +233,7 @@ const renderAccessory = (id: SharkAccessoryId | 'none') => {
       );
     case 'medal':
       return (
-        <g transform="translate(78, 106)">
+        <g transform="translate(102, 96) scale(0.9)">
           <path d="M 8 -10 L 18 -10 L 14 4 Z" fill="#2563eb" />
           <path d="M 22 -10 L 32 -10 L 26 4 Z" fill="#1d4ed8" />
           <circle cx="20" cy="14" r="11" fill="#facc15" stroke="#b45309" strokeWidth="2" />

@@ -18,6 +18,35 @@ const NUMBER_ZH_MAP: Record<string, string> = {
   '9': '九',
 };
 
+const LETTER_NAME_SPEECH: Record<string, string> = {
+  A: 'ay',
+  B: 'bee',
+  C: 'see',
+  D: 'dee',
+  E: 'ee',
+  F: 'eff',
+  G: 'gee',
+  H: 'aitch',
+  I: 'eye',
+  J: 'jay',
+  K: 'kay',
+  L: 'el',
+  M: 'em',
+  N: 'en',
+  O: 'oh',
+  P: 'pee',
+  Q: 'cue',
+  R: 'are',
+  S: 'ess',
+  T: 'tee',
+  U: 'you',
+  V: 'vee',
+  W: 'double you',
+  X: 'ex',
+  Y: 'why',
+  Z: 'zee',
+};
+
 let audioCtx: AudioContext | null = null;
 
 const getAudioCtx = () => {
@@ -55,12 +84,21 @@ export const speak = (
   window.speechSynthesis.speak(utterance);
 };
 
+const getLetterSpeech = (letter: string) => {
+  const normalized = letter.trim().toUpperCase();
+  return LETTER_NAME_SPEECH[normalized] || letter.toLowerCase();
+};
+
+export const speakLetterName = (letter: string) => {
+  speak(getLetterSpeech(letter), 'en-US', 0.56);
+};
+
 export const speakLetterThenWord = (letter: string, word: string) => {
   if (!AUDIO_PREFS.ttsEnabled) return;
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
 
-  const letterUtterance = new SpeechSynthesisUtterance(letter.toUpperCase());
+  const letterUtterance = new SpeechSynthesisUtterance(getLetterSpeech(letter));
   letterUtterance.rate = 0.56;
   letterUtterance.pitch = 1;
   letterUtterance.lang = 'en-US';
@@ -83,7 +121,7 @@ export const speakItemPrimary = (item: LetterConfig) => {
     return;
   }
   if (/^[A-Z]$/.test(item.char)) {
-    speak(item.char.toUpperCase(), 'en-US');
+    speakLetterName(item.char);
     return;
   }
   speak(item.word, 'zh-CN');

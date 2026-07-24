@@ -13,7 +13,7 @@ import {
 } from '../../logic/metrics';
 import { dist, getPathPoints, getStrokeGuides, LearningCategory, splitPathStrokes } from '../../logic/tracing';
 import { parseViewBox } from '../../logic/viewBox';
-import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
+import { playSound, speak, speakItemPrimary, speakLetterName, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import ImagePickerModal from '../../components/ImagePickerModal';
 import AnimalEncouragement from '../../components/AnimalEncouragement';
@@ -109,6 +109,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const isShapeChallenge = category === 'shapes';
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const activePointerIdRef = useRef<number | null>(null);
   const viewBoxBounds = useMemo(() => parseViewBox(item.viewBox), [item.viewBox]);
   const pathPoints = useMemo(() => getPathPoints(item.svgPath), [item.svgPath]);
   const strokePathPoints = useMemo(
@@ -178,7 +179,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       speakLetterThenWord(item.char, spokenCue);
       return;
     }
-    speak(item.char.toUpperCase(), 'en-US', 0.56);
+    speakLetterName(item.char);
     window.setTimeout(() => speak(spokenCue, 'zh-CN', 0.54), delay);
   };
 
@@ -193,6 +194,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   }, []);
 
   useEffect(() => {
+    activePointerIdRef.current = null;
+    isDragging.current = false;
     setStrokes([]);
     setCurrentStroke([]);
     setNextGuideIndex(0);
@@ -223,6 +226,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   }, [item, isShapeChallenge, supportsCaseToggle, skipDemo, spokenCue, cueIsEnglish]);
 
   const handleReplay = () => {
+    activePointerIdRef.current = null;
+    isDragging.current = false;
     setStrokes([]);
     setCurrentStroke([]);
     setNextGuideIndex(0);
@@ -244,19 +249,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     }
   };
 
-  const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
+  const getCanvasPoint = (e: React.PointerEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0, t: Date.now() };
 
     const rect = canvas.getBoundingClientRect();
-    const clientX =
-      'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY =
-      'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
 
     return {
-      x: viewBoxBounds.minX + ((clientX - rect.left) / rect.width) * viewBoxBounds.width,
-      y: viewBoxBounds.minY + ((clientY - rect.top) / rect.height) * viewBoxBounds.height,
+      x: viewBoxBounds.minX + ((e.clientX - rect.left) / rect.width) * viewBoxBounds.width,
+      y: viewBoxBounds.minY + ((e.clientY - rect.top) / rect.height) * viewBoxBounds.height,
       t: Date.now(),
     };
   };
@@ -280,12 +281,17 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     return { point: nearestPoint, index: nearestIndex, distance: minDistance };
   };
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleStart = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (isDemonstrating) return;
+    if (activePointerIdRef.current !== null) return;
+    if (e.pointerType === 'touch' && !e.isPrimary) return;
     if (!hasValidPath) {
       setHelperMessage('这条线今天打盹啦，返回换一个试试');
       return;
     }
+    e.preventDefault();
+    activePointerIdRef.current = e.pointerId;
+    e.currentTarget.setPointerCapture(e.pointerId);
     isDragging.current = true;
     playSound('start');
     const rawPoint = getCanvasPoint(e);
@@ -303,8 +309,8 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setCurrentStroke([rawPoint]);
   };
 
-  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging.current || isDemonstrating) return;
+  const handleMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDragging.current || isDemonstrating || e.pointerId !== activePointerIdRef.current) return;
     e.preventDefault();
     const rawPoint = getCanvasPoint(e);
     const nearest = findNearestPathPoint(rawPoint, activeGuidePoints);
@@ -326,8 +332,13 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setCurrentStroke((prev) => [...prev, drawPoint]);
   };
 
-  const handleEnd = () => {
-    if (!isDragging.current) return;
+  const handleEnd = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDragging.current || e.pointerId !== activePointerIdRef.current) return;
+    e.preventDefault();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    activePointerIdRef.current = null;
     isDragging.current = false;
     if (currentStroke.length < 2) {
       setCurrentStroke([]);
@@ -339,6 +350,15 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setCurrentStroke([]);
     setNextGuideIndex(0);
     checkSuccess(newStrokes);
+  };
+
+  const handleCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerId !== activePointerIdRef.current) return;
+    activePointerIdRef.current = null;
+    isDragging.current = false;
+    setCurrentStroke([]);
+    setReturnBubble(null);
+    setHelperMessage('小手准备好，再从蓝色起点开始');
   };
 
   const checkSuccess = (currentStrokes: Point[][]) => {
@@ -683,16 +703,21 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
 
               <canvas
                 ref={canvasRef}
-                className="absolute inset-0 w-full h-full cursor-crosshair opacity-0"
+                className="absolute inset-0 w-full h-full cursor-crosshair opacity-0 touch-none select-none"
                 width={Math.round(traceBoxSize)}
                 height={Math.round(traceBoxSize)}
-                onMouseDown={handleStart}
-                onMouseMove={handleMove}
-                onMouseUp={handleEnd}
-                onMouseLeave={handleEnd}
-                onTouchStart={handleStart}
-                onTouchMove={handleMove}
-                onTouchEnd={handleEnd}
+                style={{
+                  touchAction: 'none',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                }}
+                onContextMenu={(event) => event.preventDefault()}
+                onPointerDown={handleStart}
+                onPointerMove={handleMove}
+                onPointerUp={handleEnd}
+                onPointerCancel={handleCancel}
+                onLostPointerCapture={handleCancel}
               />
             </div>
 
