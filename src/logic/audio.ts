@@ -66,6 +66,36 @@ type SpeakOptions = {
   interrupt?: boolean;
 };
 
+const getPreferredVoice = (lang: 'en-US' | 'zh-CN') => {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const normalizedLang = lang.toLowerCase();
+  const languagePrefix = normalizedLang.split('-')[0];
+  const matchingVoices = voices.filter((voice) =>
+    voice.lang.toLowerCase().startsWith(languagePrefix)
+  );
+
+  return (
+    matchingVoices.find((voice) => voice.lang.toLowerCase() === normalizedLang && voice.localService) ||
+    matchingVoices.find((voice) => voice.lang.toLowerCase() === normalizedLang) ||
+    matchingVoices.find((voice) => voice.localService) ||
+    matchingVoices[0] ||
+    null
+  );
+};
+
+const configureUtterance = (
+  utterance: SpeechSynthesisUtterance,
+  lang: 'en-US' | 'zh-CN',
+  rate: number
+) => {
+  utterance.rate = rate;
+  utterance.pitch = 1;
+  utterance.lang = lang;
+  const voice = getPreferredVoice(lang);
+  if (voice) utterance.voice = voice;
+};
+
 export const speak = (
   text: string,
   lang: 'en-US' | 'zh-CN' = 'zh-CN',
@@ -78,9 +108,7 @@ export const speak = (
     window.speechSynthesis.cancel();
   }
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = rate;
-  utterance.pitch = 1;
-  utterance.lang = lang;
+  configureUtterance(utterance, lang, rate);
   window.speechSynthesis.speak(utterance);
 };
 
@@ -99,14 +127,10 @@ export const speakLetterThenWord = (letter: string, word: string) => {
   window.speechSynthesis.cancel();
 
   const letterUtterance = new SpeechSynthesisUtterance(getLetterSpeech(letter));
-  letterUtterance.rate = 0.56;
-  letterUtterance.pitch = 1;
-  letterUtterance.lang = 'en-US';
+  configureUtterance(letterUtterance, 'en-US', 0.56);
 
   const wordUtterance = new SpeechSynthesisUtterance(word);
-  wordUtterance.rate = 0.52;
-  wordUtterance.pitch = 1;
-  wordUtterance.lang = 'en-US';
+  configureUtterance(wordUtterance, 'en-US', 0.52);
 
   window.speechSynthesis.speak(letterUtterance);
   window.speechSynthesis.speak(wordUtterance);

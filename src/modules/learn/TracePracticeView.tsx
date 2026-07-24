@@ -595,50 +595,6 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   />
                 )}
 
-                {!isDemonstrating &&
-                  hasValidPath &&
-                  orderedGuides.map((guide, index) => (
-                    <g
-                      key={guide.id}
-                      transform={`translate(${guide.x}, ${guide.y})`}
-                      className={`pointer-events-none transition-opacity duration-300 ${
-                        index === activeStrokeIndex ? 'opacity-95' : index < activeStrokeIndex ? 'opacity-45' : 'opacity-20'
-                      }`}
-                    >
-                      <circle
-                        r={guideBubbleRadius}
-                        fill={index === activeStrokeIndex ? '#0ea5e9' : index < activeStrokeIndex ? '#22c55e' : '#94a3b8'}
-                        stroke="white"
-                        strokeWidth={Math.max(0.8, unitScale)}
-                        className="drop-shadow-sm"
-                      />
-                      <text
-                        y={guideBubbleRadius * 0.35}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="white"
-                        fontSize={Math.max(4, 5 * unitScale)}
-                        fontFamily="Varela Round, sans-serif"
-                        fontWeight="bold"
-                      >
-                        {guide.id}
-                      </text>
-
-                      {index === activeStrokeIndex && (
-                        <g transform={`rotate(${guide.angle}) translate(${Math.max(7, 9 * unitScale)}, 0)`}>
-                        <path
-                          d="M 0 -2 L 3 0 L 0 2"
-                          fill="none"
-                          stroke="#0ea5e9"
-                          strokeWidth={Math.max(1.2, 1.5 * unitScale)}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        </g>
-                      )}
-                    </g>
-                  ))}
-
                 {isDemonstrating && hasValidPath && (
                   <>
                     <use
@@ -679,6 +635,66 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
+
+                {!isDemonstrating &&
+                  hasValidPath &&
+                  orderedGuides.map((guide, index) => {
+                    const isActive = index === activeStrokeIndex;
+                    return (
+                      <g
+                        key={guide.id}
+                        transform={`translate(${guide.x}, ${guide.y})`}
+                        className={`pointer-events-none transition-opacity duration-300 ${
+                          isActive ? 'opacity-100' : index < activeStrokeIndex ? 'opacity-45' : 'opacity-20'
+                        }`}
+                      >
+                        <circle
+                          r={guideBubbleRadius + Math.max(1.8, 2.2 * unitScale)}
+                          fill="white"
+                          opacity={isActive ? 0.98 : 0.78}
+                          className="drop-shadow-md"
+                        />
+                        <circle
+                          r={guideBubbleRadius}
+                          fill={isActive ? '#0ea5e9' : index < activeStrokeIndex ? '#22c55e' : '#94a3b8'}
+                          stroke="white"
+                          strokeWidth={Math.max(1.1, 1.3 * unitScale)}
+                        />
+                        <text
+                          y={guideBubbleRadius * 0.35}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize={Math.max(4, 5 * unitScale)}
+                          fontFamily="Varela Round, sans-serif"
+                          fontWeight="bold"
+                        >
+                          {guide.id}
+                        </text>
+
+                        {isActive && (
+                          <g transform={`rotate(${guide.angle}) translate(${Math.max(7, 9 * unitScale)}, 0)`}>
+                            <path
+                              d="M 0 -2 L 3 0 L 0 2"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth={Math.max(3, 3.2 * unitScale)}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M 0 -2 L 3 0 L 0 2"
+                              fill="none"
+                              stroke="#0ea5e9"
+                              strokeWidth={Math.max(1.2, 1.5 * unitScale)}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
 
                 {!isDemonstrating && returnBubble && hasValidPath && (
                   <g transform={`translate(${returnBubble.x}, ${returnBubble.y})`}>

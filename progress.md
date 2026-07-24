@@ -368,3 +368,9 @@ Original prompt: 这个是帮助3岁小朋友学习书写的的基于网页版�
   - 重播（↺）同样使用贴纸语音词。
 - 涉及文件：`ImagePickerModal.tsx`、`TracePracticeView.tsx`、`App.tsx`、`storage.ts`、learn/dressup/skate/feed 相关传参。
 - 验证：`npm run build` 通过。
+
+## 2026-07-24（笔画气泡层级与 A/E 英文语音）
+- 笔画编号改为在已写笔迹之后绘制，避免 M 等多笔画字母的下一笔编号被上一笔遮住。
+- 当前笔画气泡增加白色底环、阴影与箭头描边，在蓝色笔迹上仍保持清晰。
+- Web Speech API 现在显式选择匹配语言的本地声线，英文优先 `en-US`，避免 iPad 使用中文声线朗读 A、E 和英文单词。
+- A 保持标准字母名 `/eɪ/` 并关联 `Apple`；E 保持标准字母名 `/iː/` 并关联 `Egg`。
