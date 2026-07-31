@@ -450,7 +450,7 @@ const buildCurrentPack = (item: LetterConfig): StickerItem[] => {
     const letterKey = item.char.toUpperCase();
     const pool = LETTER_ASSOCIATIONS[letterKey] || [item.word];
     const words = Array.from(new Set([item.word, ...pool])).slice(0, 6);
-    return [...words.map((word) => buildWordSticker(item, word)), buildGlyphSticker(item)];
+    return words.map((word) => buildWordSticker(item, word));
   }
 
   if (/^[0-9]$/.test(item.char)) {
