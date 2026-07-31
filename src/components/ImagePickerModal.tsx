@@ -446,8 +446,9 @@ const buildNumberVisualSticker = (
 };
 
 const buildCurrentPack = (item: LetterConfig): StickerItem[] => {
-  if (/^[A-Z]$/.test(item.char)) {
-    const pool = LETTER_ASSOCIATIONS[item.char] || [item.word];
+  if (/^[A-Za-z]$/.test(item.char)) {
+    const letterKey = item.char.toUpperCase();
+    const pool = LETTER_ASSOCIATIONS[letterKey] || [item.word];
     const words = Array.from(new Set([item.word, ...pool])).slice(0, 6);
     return [...words.map((word) => buildWordSticker(item, word)), buildGlyphSticker(item)];
   }
@@ -508,7 +509,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
     setSelected(defaultSticker?.src || currentImage || STICKERS[0].src);
     setSelectedSticker(defaultSticker);
 
-    if (/^[A-Z]$/.test(item.char)) {
+    if (/^[A-Za-z]$/.test(item.char)) {
       speakLetterThenWord(item.char, item.word);
       return;
     }
@@ -526,7 +527,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   const handleSelectSticker = (option: StickerItem) => {
     setSelected(option.src);
     setSelectedSticker(option);
-    if (/^[A-Z]$/.test(item.char) && option.labelEn) {
+    if (/^[A-Za-z]$/.test(item.char) && option.labelEn) {
       speakLetterThenWord(item.char, option.labelEn);
       return;
     }

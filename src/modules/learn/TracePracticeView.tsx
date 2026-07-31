@@ -104,10 +104,9 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const [isDemonstrating, setIsDemonstrating] = useState(true);
   const [guideFlash, setGuideFlash] = useState(false);
   const [helperMessage, setHelperMessage] = useState('请沿着线写');
-  const [showLowercase, setShowLowercase] = useState(false);
   const [showMagicModal, setShowMagicModal] = useState(false);
   const [viewport, setViewport] = useState(getViewportSize);
-  const supportsCaseToggle = /^[A-Z]$/.test(item.char);
+  const isLetterChallenge = category === 'letters';
   const isShapeChallenge = category === 'shapes';
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -206,7 +205,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setIsDemonstrating(!skipDemo);
     
     let wordTimer: number | null = null;
-    if (supportsCaseToggle) {
+    if (isLetterChallenge) {
       speakLetterWithCue(skipDemo ? 320 : 980);
     } else {
       speakItemPrimary(item);
@@ -225,7 +224,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
       if (timer !== null) window.clearTimeout(timer);
       if (wordTimer !== null) window.clearTimeout(wordTimer);
     };
-  }, [item, isShapeChallenge, supportsCaseToggle, skipDemo, spokenCue, cueIsEnglish]);
+  }, [item, isShapeChallenge, isLetterChallenge, skipDemo, spokenCue, cueIsEnglish]);
 
   const handleReplay = () => {
     activePointerIdRef.current = null;
@@ -236,7 +235,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setReturnBubble(null);
     setHelperMessage(isShapeChallenge ? '从第1笔开始画线' : '再试一次，从第1笔开始');
     setIsDemonstrating(!skipDemo);
-    if (supportsCaseToggle) {
+    if (isLetterChallenge) {
       speakLetterWithCue(skipDemo ? 320 : 980);
     } else {
       speakItemPrimary(item);
@@ -484,16 +483,6 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
           <span className="bg-white/20 px-3 py-2 rounded-xl text-white font-black text-sm flex items-center">
             {difficultyMode === 'guide' ? '引导模式' : difficultyMode === 'practice' ? '练习模式' : '挑战模式'}
           </span>
-          {supportsCaseToggle && (
-            <button
-              onClick={() => setShowLowercase(!showLowercase)}
-              className={`bg-white/20 px-4 py-2 rounded-xl text-white font-bold text-xl active:scale-95 border-2 ${
-                showLowercase ? 'border-white bg-white/30' : 'border-transparent'
-              }`}
-            >
-              Aa
-            </button>
-          )}
           <button onClick={handleReplay} className="bg-white/20 p-3 rounded-full text-white text-2xl active:scale-95">
             ↺
           </button>
@@ -519,7 +508,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                   isLandscape ? 'text-7xl md:text-8xl' : 'text-8xl md:text-9xl'
                 }`}
               >
-                {supportsCaseToggle && showLowercase ? `${item.char} ${item.char.toLowerCase()}` : item.char}
+                {item.char}
               </span>
               <div className="flex flex-col items-center relative group">
                 <div className="relative">
@@ -647,7 +636,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                     return (
                       <g
                         key={guide.id}
-                        transform={`translate(${guide.x}, ${guide.y})`}
+                        transform={`translate(${guide.hintX ?? guide.x}, ${guide.hintY ?? guide.y})`}
                         className={`pointer-events-none transition-opacity duration-300 ${
                           isActive ? 'opacity-100' : index < activeStrokeIndex ? 'opacity-45' : 'opacity-20'
                         }`}

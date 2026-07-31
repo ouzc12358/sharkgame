@@ -43,7 +43,7 @@ export const getStrokeGuides = (d: string, viewBox?: string): StrokeGuide[] => {
 
   try {
     const rawGuides = segments
-      .map((seg, i) => {
+      .map<StrokeGuide | null>((seg, i) => {
         try {
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('d', seg);

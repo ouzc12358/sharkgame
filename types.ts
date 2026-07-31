@@ -10,6 +10,8 @@ export interface StrokeGuide {
   x: number;
   y: number;
   angle?: number;
+  hintX?: number;
+  hintY?: number;
 }
 
 export interface LetterConfig {

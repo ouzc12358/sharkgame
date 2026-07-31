@@ -138,7 +138,9 @@ export default function App() {
   const todayPracticedItems = todayPracticedKeys.map(formatPracticeItemKey);
 
   const weakestMetricSuggestions = useMemo(() => {
-    const attemptsEntries = Object.entries(metricsStore.attempts);
+    const attemptsEntries = Object.entries(metricsStore.attempts) as Array<
+      [string, TraceAttempt[]]
+    >;
     if (attemptsEntries.length === 0) return [];
 
     const metricLabel: Record<'follow' | 'smoothness' | 'continuity', string> = {

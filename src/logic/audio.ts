@@ -180,7 +180,7 @@ export const speakItemPrimary = (item: LetterConfig) => {
     speak(`数字${zhNumber}`, 'zh-CN');
     return;
   }
-  if (/^[A-Z]$/.test(item.char)) {
+  if (/^[A-Za-z]$/.test(item.char)) {
     speakLetterName(item.char);
     return;
   }

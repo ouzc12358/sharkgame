@@ -6,8 +6,10 @@ import TracePracticeView from '../learn/TracePracticeView';
 import { LearningModeProps } from '../learn/types';
 import {
   HANZI_BASIC_STROKES,
-  HANZI_SIMPLE_CHARACTERS,
+  HANZI_CHARACTER_PAIRS,
+  HANZI_NUMBER_CHARACTERS,
   HANZI_WRITING_ITEMS,
+  HanziCharacterPair,
   HanziWritingItem,
 } from './hanziWritingData';
 
@@ -65,6 +67,70 @@ const HanziGroup: React.FC<HanziGroupProps> = ({
           </div>
         );
       })}
+    </div>
+  </section>
+);
+
+interface HanziPairGroupProps {
+  pairs: HanziCharacterPair[];
+  progress: LearningModeProps['progress'];
+  onStart: (item: HanziWritingItem) => void;
+}
+
+const HanziPairGroup: React.FC<HanziPairGroupProps> = ({ pairs, progress, onStart }) => (
+  <section className="mb-5">
+    <h2 className="text-xl md:text-2xl font-black text-white mb-1">🫶 一对好朋友</h2>
+    <p className="text-sm md:text-base font-bold text-white/80 mb-3">
+      把意思相反或有关联的字放在一起
+    </p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {pairs.map((pair) => (
+        <div
+          key={pair.id}
+          className="rounded-3xl bg-ocean-100/95 p-3 shadow-[0_6px_0_rgba(0,0,0,0.12)]"
+        >
+          <div className="flex items-center justify-between px-2 pb-2">
+            <p className="text-lg font-black text-ocean-900">{pair.label}</p>
+            <span className="text-xl">{pair.icon}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {pair.items.map((item) => {
+              const done = Boolean(progress[item.char]);
+              return (
+                <div
+                  key={item.char}
+                  className={`relative min-h-36 rounded-2xl ${
+                    done ? 'bg-sand ring-4 ring-yellow-300' : 'bg-white'
+                  }`}
+                >
+                  <button
+                    onClick={() => onStart(item)}
+                    className="absolute inset-0 w-full h-full rounded-2xl p-3 active:scale-95"
+                    aria-label={`练习${item.word}`}
+                  >
+                    <span className="block text-6xl font-black text-ocean-900">
+                      {item.char}
+                    </span>
+                    <span className="block text-sm font-black text-gray-500 mt-1">
+                      {item.pinyin}
+                    </span>
+                    {done && <span className="block text-sm mt-1">🦈</span>}
+                  </button>
+                  <button
+                    onClick={() =>
+                      speak(`${item.word}，${item.phonics?.zh || ''}`, 'zh-CN', 0.58)
+                    }
+                    aria-label={`听${item.word}`}
+                    className="absolute top-1 right-1 z-10 w-8 h-8 rounded-full bg-ocean-100 text-sm active:scale-90"
+                  >
+                    🔊
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 );
@@ -144,9 +210,11 @@ const HanziWritingMode: React.FC<LearningModeProps> = ({
             <span className="text-5xl">🖌️</span>
             <div>
               <p className="text-xl md:text-2xl font-black text-ocean-900">
-                先画小笔画，再写简单字
+                从小笔画到有意思的汉字
               </p>
-              <p className="text-sm font-bold text-gray-500">一次只写一个，慢慢来</p>
+              <p className="text-sm font-bold text-gray-500">
+                数字排好队，好朋友放一起
+              </p>
             </div>
           </div>
 
@@ -190,9 +258,14 @@ const HanziWritingMode: React.FC<LearningModeProps> = ({
               onStart={handleStart}
             />
             <HanziGroup
-              title="简单汉字"
-              icon="🌱"
-              items={HANZI_SIMPLE_CHARACTERS}
+              title="一到十"
+              icon="🔟"
+              items={HANZI_NUMBER_CHARACTERS}
+              progress={progress}
+              onStart={handleStart}
+            />
+            <HanziPairGroup
+              pairs={HANZI_CHARACTER_PAIRS}
               progress={progress}
               onStart={handleStart}
             />
