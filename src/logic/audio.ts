@@ -18,35 +18,6 @@ const NUMBER_ZH_MAP: Record<string, string> = {
   '9': '九',
 };
 
-const LETTER_NAME_SPEECH: Record<string, string> = {
-  A: 'A',
-  B: 'bee',
-  C: 'see',
-  D: 'dee',
-  E: 'E',
-  F: 'eff',
-  G: 'gee',
-  H: 'aitch',
-  I: 'eye',
-  J: 'jay',
-  K: 'kay',
-  L: 'el',
-  M: 'em',
-  N: 'en',
-  O: 'oh',
-  P: 'pee',
-  Q: 'cue',
-  R: 'are',
-  S: 'ess',
-  T: 'tee',
-  U: 'you',
-  V: 'vee',
-  W: 'double you',
-  X: 'ex',
-  Y: 'why',
-  Z: 'zee',
-};
-
 let audioCtx: AudioContext | null = null;
 let speechRequestId = 0;
 
@@ -148,12 +119,7 @@ export const speak = (
 };
 
 const getLetterSpeech = (letter: string) => {
-  const normalized = letter.trim().toUpperCase();
-  return LETTER_NAME_SPEECH[normalized] || letter.toLowerCase();
-};
-
-export const speakLetterName = (letter: string) => {
-  speak(getLetterSpeech(letter), 'en-US', 0.56);
+  return letter.trim().toUpperCase();
 };
 
 export const speakLetterThenWord = (letter: string, word: string) => {
@@ -161,12 +127,18 @@ export const speakLetterThenWord = (letter: string, word: string) => {
   if (!('speechSynthesis' in window)) return;
   const requestId = beginSpeechRequest(true);
   queueWhenVoicesReady(requestId, (synthesis) => {
+    const caseUtterance = new SpeechSynthesisUtterance(
+      letter === letter.toUpperCase() ? '大写' : '小写'
+    );
+    configureUtterance(caseUtterance, 'zh-CN', 0.56);
+
     const letterUtterance = new SpeechSynthesisUtterance(getLetterSpeech(letter));
-    configureUtterance(letterUtterance, 'en-US', 0.56);
+    configureUtterance(letterUtterance, 'en-US', 0.52);
 
     const wordUtterance = new SpeechSynthesisUtterance(word);
     configureUtterance(wordUtterance, 'en-US', 0.52);
 
+    synthesis.speak(caseUtterance);
     synthesis.speak(letterUtterance);
     synthesis.speak(wordUtterance);
   });
@@ -181,7 +153,7 @@ export const speakItemPrimary = (item: LetterConfig) => {
     return;
   }
   if (/^[A-Za-z]$/.test(item.char)) {
-    speakLetterName(item.char);
+    speakLetterThenWord(item.char, item.word);
     return;
   }
   speak(item.word, 'zh-CN');

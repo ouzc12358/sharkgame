@@ -161,12 +161,12 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
     'a',
     'Apple',
     '🍎',
-    'M 58 42 C 48 31 28 37 27 58 C 26 78 46 85 59 70 C 64 64 65 48 58 42 M 60 38 L 60 82',
+    'M 60 44 C 51 33 33 34 27 51 C 21 69 33 82 48 81 C 61 80 67 61 60 44 M 63 38 L 63 82',
     {
       strokeCountHint: 2,
       strokeGuides: [
-        { id: 1, x: 58, y: 42, angle: 155 },
-        { id: 2, x: 60, y: 38, angle: 90 },
+        { id: 1, x: 60, y: 44, angle: 160 },
+        { id: 2, x: 63, y: 38, angle: 90 },
       ],
     }
   ),
@@ -174,25 +174,28 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
     'b',
     'Ball',
     '⚽',
-    'M 32 15 L 32 82 M 33 50 C 45 34 68 39 70 58 C 72 77 49 86 33 70',
+    'M 32 15 L 32 82 M 32 50 C 44 35 67 38 70 57 C 73 75 52 86 36 73 C 30 68 29 58 32 50',
     {
       strokeCountHint: 2,
       strokeGuides: [
         { id: 1, x: 32, y: 15, angle: 90 },
-        { id: 2, x: 33, y: 50, angle: -45 },
+        { id: 2, x: 32, y: 50, angle: -45 },
       ],
     }
   ),
-  createLetter('c', 'Cat', '🐱', 'M 72 43 C 57 30 31 38 28 59 C 26 78 53 88 72 73'),
+  createLetter('c', 'Cat', '🐱', 'M 72 43 C 57 30 31 38 28 59 C 26 78 53 88 72 73', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 72, y: 43, angle: 165 }],
+  }),
   createLetter(
     'd',
     'Dog',
     '🐶',
-    'M 62 43 C 50 31 29 38 28 59 C 27 78 49 85 62 70 C 67 63 66 49 62 43 M 65 15 L 65 82',
+    'M 62 44 C 51 33 33 34 27 51 C 21 69 33 82 48 81 C 61 80 67 61 62 44 M 65 15 L 65 82',
     {
       strokeCountHint: 2,
       strokeGuides: [
-        { id: 1, x: 62, y: 43, angle: 155 },
+        { id: 1, x: 62, y: 44, angle: 160 },
         { id: 2, x: 65, y: 15, angle: 90 },
       ],
     }
@@ -201,7 +204,11 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
     'e',
     'Egg',
     '🥚',
-    'M 34 55 L 72 55 C 70 37 45 32 32 44 C 18 57 30 79 50 80 C 62 80 69 75 75 68'
+    'M 34 55 L 72 55 C 70 37 45 32 32 44 C 18 57 30 79 50 80 C 62 80 69 75 75 68',
+    {
+      strokeCountHint: 1,
+      strokeGuides: [{ id: 1, x: 34, y: 55, angle: 0 }],
+    }
   ),
   createLetter(
     'f',
@@ -221,12 +228,12 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
     'g',
     'Goat',
     '🐐',
-    'M 61 42 C 49 31 29 37 28 58 C 27 77 49 84 61 70 C 66 63 66 49 61 42 M 64 40 L 64 78 C 64 94 39 96 30 86',
+    'M 61 44 C 51 33 33 34 27 51 C 21 69 33 82 48 81 C 61 80 66 61 61 44 M 64 39 L 64 77 C 64 93 41 97 29 86',
     {
       strokeCountHint: 2,
       strokeGuides: [
-        { id: 1, x: 61, y: 42, angle: 155 },
-        { id: 2, x: 64, y: 40, angle: 90 },
+        { id: 1, x: 61, y: 44, angle: 160 },
+        { id: 2, x: 64, y: 39, angle: 90 },
       ],
     }
   ),
@@ -283,25 +290,51 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
       ],
     }
   ),
-  createLetter('l', 'Lion', '🦁', 'M 48 15 L 48 75 C 48 82 54 84 61 80'),
+  createLetter('l', 'Lion', '🦁', 'M 50 15 L 50 82', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 50, y: 15, angle: 90 }],
+  }),
   createLetter(
     'm',
     'Moon',
     '🌙',
-    'M 22 82 L 22 43 C 31 36 43 38 43 52 L 43 82 L 43 51 C 53 35 68 38 69 55 L 69 82'
+    'M 23 42 L 23 82 M 23 52 C 33 36 48 39 48 56 L 48 82 M 48 52 C 58 36 73 39 73 56 L 73 82',
+    {
+      strokeCountHint: 3,
+      strokeGuides: [
+        { id: 1, x: 23, y: 42, angle: 90 },
+        { id: 2, x: 23, y: 52, angle: -55 },
+        { id: 3, x: 48, y: 52, angle: -55 },
+      ],
+    }
   ),
-  createLetter('n', 'Nest', '🪺', 'M 29 82 L 29 43 C 40 35 65 38 66 56 L 66 82'),
-  createLetter('o', 'Owl', '🦉', 'M 50 36 C 24 36 24 82 50 82 C 76 82 76 36 50 36'),
+  createLetter(
+    'n',
+    'Nest',
+    '🪺',
+    'M 30 42 L 30 82 M 30 52 C 41 36 66 39 67 57 L 67 82',
+    {
+      strokeCountHint: 2,
+      strokeGuides: [
+        { id: 1, x: 30, y: 42, angle: 90 },
+        { id: 2, x: 30, y: 52, angle: -55 },
+      ],
+    }
+  ),
+  createLetter('o', 'Owl', '🦉', 'M 50 36 C 24 36 24 82 50 82 C 76 82 76 36 50 36', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 50, y: 36, angle: 180 }],
+  }),
   createLetter(
     'p',
     'Pig',
     '🐷',
-    'M 31 40 L 31 94 M 32 49 C 43 33 68 39 70 58 C 71 77 48 85 32 69',
+    'M 31 40 L 31 94 M 31 50 C 43 34 67 38 70 57 C 73 75 52 86 36 73 C 30 68 29 58 31 50',
     {
       strokeCountHint: 2,
       strokeGuides: [
         { id: 1, x: 31, y: 40, angle: 90 },
-        { id: 2, x: 32, y: 49, angle: -45 },
+        { id: 2, x: 31, y: 50, angle: -45 },
       ],
     }
   ),
@@ -309,17 +342,32 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
     'q',
     'Queen',
     '👑',
-    'M 61 42 C 49 31 29 37 28 58 C 27 77 49 84 61 70 C 66 63 66 49 61 42 M 64 40 L 64 94',
+    'M 61 44 C 51 33 33 34 27 51 C 21 69 33 82 48 81 C 61 80 66 61 61 44 M 64 39 L 64 94',
     {
       strokeCountHint: 2,
       strokeGuides: [
-        { id: 1, x: 61, y: 42, angle: 155 },
-        { id: 2, x: 64, y: 40, angle: 90 },
+        { id: 1, x: 61, y: 44, angle: 160 },
+        { id: 2, x: 64, y: 39, angle: 90 },
       ],
     }
   ),
-  createLetter('r', 'Rabbit', '🐰', 'M 34 82 L 34 43 C 42 35 57 36 66 43'),
-  createLetter('s', 'Sun', '☀️', 'M 70 43 C 58 34 33 36 31 50 C 29 62 68 57 69 70 C 70 83 42 87 29 76'),
+  createLetter(
+    'r',
+    'Rabbit',
+    '🐰',
+    'M 34 42 L 34 82 M 34 52 C 43 38 58 37 68 44',
+    {
+      strokeCountHint: 2,
+      strokeGuides: [
+        { id: 1, x: 34, y: 42, angle: 90 },
+        { id: 2, x: 34, y: 52, angle: -52 },
+      ],
+    }
+  ),
+  createLetter('s', 'Sun', '☀️', 'M 70 43 C 58 34 33 36 31 50 C 29 62 68 57 69 70 C 70 83 42 87 29 76', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 70, y: 43, angle: 170 }],
+  }),
   createLetter(
     't',
     'Turtle',
@@ -333,9 +381,26 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
       ],
     }
   ),
-  createLetter('u', 'Umbrella', '☂️', 'M 29 40 L 29 65 C 29 88 65 88 67 64 L 67 40 L 67 82'),
-  createLetter('v', 'Violin', '🎻', 'M 25 40 L 49 82 L 75 40'),
+  createLetter(
+    'u',
+    'Umbrella',
+    '☂️',
+    'M 29 40 L 29 65 C 29 86 60 87 67 65 M 67 40 L 67 82',
+    {
+      strokeCountHint: 2,
+      strokeGuides: [
+        { id: 1, x: 29, y: 40, angle: 90 },
+        { id: 2, x: 67, y: 40, angle: 90 },
+      ],
+    }
+  ),
+  createLetter('v', 'Violin', '🎻', 'M 25 40 L 49 82 L 75 40', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 25, y: 40, angle: 58 }],
+  }),
   createLetter('w', 'Whale', '🐋', 'M 18 40 L 31 82 L 49 53 L 66 82 L 82 40', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 18, y: 40, angle: 72 }],
     stickerTags: ['W', 'whale', 'ocean'],
   }),
   createLetter(
@@ -364,7 +429,10 @@ export const LOWERCASE_LETTER_ITEMS: LetterConfig[] = [
       ],
     }
   ),
-  createLetter('z', 'Zebra', '🦓', 'M 27 41 L 73 41 L 28 82 L 75 82'),
+  createLetter('z', 'Zebra', '🦓', 'M 27 41 L 73 41 L 28 82 L 75 82', {
+    strokeCountHint: 1,
+    strokeGuides: [{ id: 1, x: 27, y: 41, angle: 0 }],
+  }),
 ];
 
 export const SHAPE_ITEMS: LetterConfig[] = [

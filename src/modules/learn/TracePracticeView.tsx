@@ -13,7 +13,7 @@ import {
 } from '../../logic/metrics';
 import { dist, getPathPoints, getStrokeGuides, LearningCategory, splitPathStrokes } from '../../logic/tracing';
 import { parseViewBox } from '../../logic/viewBox';
-import { playSound, speak, speakItemPrimary, speakLetterName, speakLetterThenWord } from '../../logic/audio';
+import { playSound, speak, speakItemPrimary, speakLetterThenWord } from '../../logic/audio';
 import FriendlyShark from '../../components/FriendlyShark';
 import ImagePickerModal from '../../components/ImagePickerModal';
 import AnimalEncouragement from '../../components/AnimalEncouragement';
@@ -171,17 +171,9 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
   const spokenCue = (customImageVoice || item.word || '').trim();
   const cueIsEnglish = /^[A-Za-z][A-Za-z\s'-]*$/.test(spokenCue);
 
-  const speakLetterWithCue = (delay = 0) => {
-    if (!spokenCue) {
-      speakLetterThenWord(item.char, item.word);
-      return;
-    }
-    if (cueIsEnglish) {
-      speakLetterThenWord(item.char, spokenCue);
-      return;
-    }
-    speakLetterName(item.char);
-    window.setTimeout(() => speak(spokenCue, 'zh-CN', 0.54), delay);
+  const speakLetterWithCue = () => {
+    const word = spokenCue && cueIsEnglish ? spokenCue : item.word;
+    speakLetterThenWord(item.char, word);
   };
 
   useEffect(() => {
@@ -206,7 +198,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     
     let wordTimer: number | null = null;
     if (isLetterChallenge) {
-      speakLetterWithCue(skipDemo ? 320 : 980);
+      speakLetterWithCue();
     } else {
       speakItemPrimary(item);
       const wordDelay = skipDemo ? 320 : 1300;
@@ -236,7 +228,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
     setHelperMessage(isShapeChallenge ? '从第1笔开始画线' : '再试一次，从第1笔开始');
     setIsDemonstrating(!skipDemo);
     if (isLetterChallenge) {
-      speakLetterWithCue(skipDemo ? 320 : 980);
+      speakLetterWithCue();
     } else {
       speakItemPrimary(item);
       window.setTimeout(() => {
@@ -638,7 +630,7 @@ const TracePracticeView: React.FC<TracePracticeViewProps> = ({
                         key={guide.id}
                         transform={`translate(${guide.hintX ?? guide.x}, ${guide.hintY ?? guide.y})`}
                         className={`pointer-events-none transition-opacity duration-300 ${
-                          isActive ? 'opacity-100' : index < activeStrokeIndex ? 'opacity-45' : 'opacity-20'
+                          isActive ? 'opacity-100' : index < activeStrokeIndex ? 'opacity-35' : 'opacity-0'
                         }`}
                       >
                         <circle

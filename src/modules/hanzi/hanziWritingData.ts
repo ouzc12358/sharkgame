@@ -111,15 +111,15 @@ const FOUR = createHanziWritingItem(
   '四',
   'sì',
   '🪟',
-  'M 22 22 L 22 82 M 22 22 L 78 22 L 78 82 M 40 42 L 40 65 M 60 41 L 60 66 M 22 82 L 78 82',
+  'M 22 22 L 22 82 M 22 22 L 78 22 L 78 82 M 47 39 C 44 50 40 59 35 66 M 60 39 L 60 60 C 60 67 66 69 72 65 M 22 82 L 78 82',
   [
-    { id: 1, x: 22, y: 22, angle: 90, hintX: 17, hintY: 30 },
-    { id: 2, x: 22, y: 22, angle: 0, hintX: 28, hintY: 16 },
-    { id: 3, x: 40, y: 42, angle: 90 },
-    { id: 4, x: 60, y: 41, angle: 90 },
+    { id: 1, x: 22, y: 22, angle: 90 },
+    { id: 2, x: 22, y: 22, angle: 0 },
+    { id: 3, x: 47, y: 39, angle: 108 },
+    { id: 4, x: 60, y: 39, angle: 90 },
     { id: 5, x: 22, y: 82, angle: 0 },
   ],
-  '四像一扇小窗，里面住着两条小线'
+  '四有五笔：竖、横折、撇、竖弯、横'
 );
 
 const FIVE = createHanziWritingItem(
@@ -127,14 +127,14 @@ const FIVE = createHanziWritingItem(
   '五',
   'wǔ',
   '🖐️',
-  'M 24 22 L 76 22 M 39 22 L 34 52 M 34 52 L 70 52 L 67 79 M 20 80 L 80 80',
+  'M 23 22 L 78 22 M 38 22 L 38 52 M 38 52 L 72 52 L 68 80 M 20 80 L 82 80',
   [
-    { id: 1, x: 24, y: 22, angle: 0 },
-    { id: 2, x: 39, y: 22, angle: 96, hintX: 43, hintY: 30 },
-    { id: 3, x: 34, y: 52, angle: 0 },
+    { id: 1, x: 23, y: 22, angle: 0 },
+    { id: 2, x: 38, y: 22, angle: 90 },
+    { id: 3, x: 38, y: 52, angle: 0 },
     { id: 4, x: 20, y: 80, angle: 0 },
   ],
-  '五根手指挥挥手'
+  '五有四笔：横、竖、横折、横'
 );
 
 const SIX = createHanziWritingItem(
